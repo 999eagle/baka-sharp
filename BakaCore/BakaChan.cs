@@ -40,7 +40,7 @@ namespace BakaCore
 					LogLevel = LogSeverity.Debug
 				})
 				.AddSingleton<DiscordSocketClient>()
-				.AddSingleton<CommandHandler>();
+				.AddSingleton<Commands.CommandHandler>();
 			if (config.LoggerFactory == null)
 			{
 				config.LoggerFactory = new LoggerFactory();
@@ -57,7 +57,8 @@ namespace BakaCore
 			await client.LoginAsync(TokenType.Bot, loginToken);
 			await client.StartAsync();
 			
-			services.GetRequiredService<CommandHandler>();
+			var commandHandler = services.GetRequiredService<Commands.CommandHandler>();
+			commandHandler.RegisterCommands<Commands.GeneralCommands>();
 			try
 			{
 				// Wait until the token is cancelled
