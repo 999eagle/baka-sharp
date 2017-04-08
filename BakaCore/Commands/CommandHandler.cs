@@ -28,6 +28,7 @@ namespace BakaCore.Commands
 			this.config = config;
 			this.client.MessageReceived += MessageReceived;
 			this.services = services;
+			RegisterCommands(this);
 		}
 
 		public void RegisterCommands<T>(T instance = null) where T : class
@@ -88,6 +89,18 @@ namespace BakaCore.Commands
 					break;
 				}
 			}
+		}
+
+		[Command("help", Help = "Shows this help")]
+		public async Task HelpCommand(SocketMessage message)
+		{
+			var text = "**Baka-chan**\nMade by **The999eagle#6302**\n\n";
+			foreach (var command in registeredCommands)
+			{
+				text += $"`{config.CommandTag}{command.Commands[0]}{(command.Subcommand ?? "")}{command.UsageString}`: {command.HelpText}\n";
+			}
+			var channel = await message.Author.CreateDMChannelAsync();
+			await channel.SendMessageAsync(text);
 		}
 
 		private Command CreateCommand(object instance, MethodInfo meth)
