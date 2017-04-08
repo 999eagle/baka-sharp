@@ -5,12 +5,31 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 
+using BakaCore.ConfigClasses;
+
 namespace BakaCore
 {
-	public class Config
+	namespace ConfigClasses
 	{
-		public ILoggerFactory LoggerFactory { get; set; } = null;
-		public bool CommandsDisabled { get; set; } = false;
-		public string CommandTag { get; set; } = "+";
+		public class Logging
+		{
+			public ILoggerFactory LoggerFactory { get; set; }
+			public LogLevel LogLevel { get; set; }
+		}
+		public class Commands
+		{
+			public bool Disabled { get; set; }
+			public string Tag { get; set; }
+		}
+		public class API
+		{
+			public string DiscordLoginToken { get; set; }
+		}
+	}
+	public class Configuration
+	{
+		public Logging Logging { get; set; }
+		public ConfigClasses.Commands Commands { get; set; }
+		public API API { get; set; }
 	}
 }

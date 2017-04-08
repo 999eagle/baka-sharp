@@ -23,13 +23,10 @@ namespace ConsoleTest
 
 		static async Task AsyncMain(string[] args)
 		{
-			var generalConfig = config.GetSection("General");
-
-			var bakaConfig = new BakaCore.Config();
-			bakaConfig.CommandTag = generalConfig["CommandTag"];
+			var bakaConfig = config.Get<BakaCore.Configuration>();
 			var bot = new BakaCore.BakaChan(bakaConfig);
-			bakaConfig.LoggerFactory.AddConsole(generalConfig.GetValue<LogLevel>("LogLevel"));
-			var runTask = bot.Run(config["Discord:LoginToken"]);
+			bakaConfig.Logging.LoggerFactory.AddConsole(bakaConfig.Logging.LogLevel);
+			var runTask = bot.Run();
 			while (Console.ReadLine() != "e") ;
 			bot.Stop();
 			await runTask;

@@ -15,12 +15,12 @@ namespace BakaCore
 	public class BakaChan
 	{
 		private DiscordSocketClient client;
-		private Config config;
+		private Configuration config;
 		private CancellationTokenSource cancellationTokenSource;
 		private IServiceProvider services;
 		private ILogger logger;
 
-		public BakaChan(Config config)
+		public BakaChan(Configuration config)
 		{
 			this.config = config;
 
@@ -41,20 +41,20 @@ namespace BakaCore
 				})
 				.AddSingleton<DiscordSocketClient>()
 				.AddSingleton<Commands.CommandHandler>();
-			if (config.LoggerFactory == null)
+			if (config.Logging.LoggerFactory == null)
 			{
-				config.LoggerFactory = new LoggerFactory();
+				config.Logging.LoggerFactory = new LoggerFactory();
 			}
-			services.AddSingleton(config.LoggerFactory);
+			services.AddSingleton(config.Logging.LoggerFactory);
 
 			this.services = services.BuildServiceProvider();
 		}
 
-		public async Task Run(string loginToken)
+		public async Task Run()
 		{
 			Initialize();
 			cancellationTokenSource = new CancellationTokenSource();
-			await client.LoginAsync(TokenType.Bot, loginToken);
+			await client.LoginAsync(TokenType.Bot, config.API.DiscordLoginToken);
 			await client.StartAsync();
 			
 			var commandHandler = services.GetRequiredService<Commands.CommandHandler>();
@@ -87,7 +87,7 @@ namespace BakaCore
 			{
 				logger.LogInformation($"Discord client ready. UserID: {client.CurrentUser.Id}");
 				await client.SetStatusAsync(UserStatus.Online);
-				await client.SetGameAsync($"Use +help");
+				await client.SetGameAsync($"Use {config.Commands.Tag}help");
 			}
 			async Task DispatchDiscordLogMessage(LogMessage message)
 			{

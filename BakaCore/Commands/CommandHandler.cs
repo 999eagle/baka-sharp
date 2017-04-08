@@ -15,13 +15,13 @@ namespace BakaCore.Commands
 	class CommandHandler
 	{
 		private DiscordSocketClient client;
-		private Config config;
+		private Configuration config;
 		private ILogger logger;
 		private IServiceProvider services;
 
 		private List<Command> registeredCommands = new List<Command>();
 
-		public CommandHandler(ILoggerFactory loggerFactory, DiscordSocketClient client, Config config, IServiceProvider services)
+		public CommandHandler(ILoggerFactory loggerFactory, DiscordSocketClient client, Configuration config, IServiceProvider services)
 		{
 			logger = loggerFactory.CreateLogger<CommandHandler>();
 			this.client = client;
@@ -65,21 +65,21 @@ namespace BakaCore.Commands
 		{
 			if (message.Content.Length == 0) return;
 			logger.LogTrace($"Message received: {message.Content}");
-			if (config.CommandsDisabled) return;
+			if (config.Commands.Disabled) return;
 
 			// split message and normalize array for the tag
 			var command = message.Content.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).ToList();
-			if (!config.CommandTag.EndsWith(" ") && command[0].StartsWith(config.CommandTag))
+			if (!config.Commands.Tag.EndsWith(" ") && command[0].StartsWith(config.Commands.Tag))
 			{
-				if (command[0].Length == config.CommandTag.Length)
+				if (command[0].Length == config.Commands.Tag.Length)
 				{
 					command.RemoveAt(0);
 				}
 				else
 				{
-					command[0] = command[0].Substring(config.CommandTag.Length);
+					command[0] = command[0].Substring(config.Commands.Tag.Length);
 				}
-				command.Insert(0, config.CommandTag);
+				command.Insert(0, config.Commands.Tag);
 			}
 			var split = command.ToArray();
 			foreach (var cmd in registeredCommands)
@@ -97,7 +97,7 @@ namespace BakaCore.Commands
 			var text = "**Baka-chan**\nMade by **The999eagle#6302**\n\n";
 			foreach (var command in registeredCommands)
 			{
-				text += $"`{config.CommandTag}{command.Commands[0]}{(command.Subcommand ?? "")}{command.UsageString}`: {command.HelpText}\n";
+				text += $"`{config.Commands.Tag}{command.Commands[0]}{(command.Subcommand ?? "")}{command.UsageString}`: {command.HelpText}\n";
 			}
 			var channel = await message.Author.CreateDMChannelAsync();
 			await channel.SendMessageAsync(text);

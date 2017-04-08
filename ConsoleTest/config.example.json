@@ -1,9 +1,11 @@
 ﻿{
-	"General": {
-		"LogLevel": "Debug",
-		"CommandTag": "+"
+	"Logging": {
+		"LogLevel": "Debug"
 	},
-	"Discord": {
-		"LoginToken": "<your token here>"
+	"Commands": {
+		"Tag": "+"
+	},
+	"API": {
+		"DiscordLoginToken": "<your token here>"
 	}
 }
