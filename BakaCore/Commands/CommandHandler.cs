@@ -30,83 +30,33 @@ namespace BakaCore.Commands
 			this.services = services;
 		}
 
-		public void RegisterCommands<T>()
+		public void RegisterCommands<T>(T instance = null) where T : class
 		{
 			var classType = typeof(T).GetTypeInfo();
-			T instance = default(T);
-			foreach (var ctor in classType.GetConstructors())
-			{
-				var parameters = ctor.GetParameters();
-				if (parameters.Length == 1 && parameters[0].ParameterType == typeof(IServiceProvider))
-				{
-					instance = (T)ctor.Invoke(new[] { services });
-					break;
-				}
-				if (parameters.Length == 0)
-				{
-					instance = (T)ctor.Invoke(null);
-					break;
-				}
-			}
 			if (instance == null)
 			{
-				return;
+				foreach (var ctor in classType.GetConstructors())
+				{
+					var parameters = ctor.GetParameters();
+					if (parameters.Length == 1 && parameters[0].ParameterType == typeof(IServiceProvider))
+					{
+						instance = (T)ctor.Invoke(new[] { services });
+						break;
+					}
+					if (parameters.Length == 0)
+					{
+						instance = (T)ctor.Invoke(null);
+						break;
+					}
+				}
+				if (instance == null)
+				{
+					return;
+				}
 			}
 			foreach (var meth in classType.GetMethods().Where(mi => mi.GetCustomAttribute<CommandAttribute>() != null))
 			{
-				var command = new Command();
-				var attr = meth.GetCustomAttribute<CommandAttribute>();
-				command.HelpText = attr.Help;
-				command.Commands = attr.Commands;
-				command.UsageString = "";
-				var commandArgs = meth.GetParameters().Skip(1).ToList();
-				foreach (var arg in commandArgs)
-				{
-					string usage = "";
-					switch (arg)
-					{
-						case ParameterInfo user when (user.ParameterType == typeof(SocketUser)):
-							usage = "<@user>";
-							break;
-					}
-					if (arg.GetCustomAttribute<OptionalAttribute>() != null)
-					{
-						usage = $"[{usage}]";
-					}
-					command.UsageString += usage + " ";
-				}
-				command.Invoke = async (message, split) =>
-				{
-					var args = new List<object> { message };
-					var parseIdx = 1;
-					if (!command.Commands.Contains(split[parseIdx++])) { return false; }
-					if (command.Subcommand != null && split[parseIdx++] != command.Subcommand) { return false; }
-					for (int i = 0; i < commandArgs.Count; i++)
-					{
-						var optional = commandArgs[i].GetCustomAttribute<OptionalAttribute>() != null;
-						var parseText = (i + parseIdx >= split.Length) ? "" : split[i + parseIdx];
-						if (!optional && parseText == "") return false;
-						switch (commandArgs[i])
-						{
-							case ParameterInfo arg when (arg.ParameterType == typeof(SocketUser)):
-								if (parseText == "")
-								{
-									args.Add(null);
-								}
-								else if (MentionUtils.TryParseUser(parseText, out var userId))
-								{
-									args.Add(client.GetUser(userId));
-								}
-								else
-								{
-									return false;
-								}
-								break;
-						}
-					}
-					return await (Task<bool>)meth.Invoke(instance, args.ToArray());
-				};
-				registeredCommands.Add(command);
+				registeredCommands.Add(CreateCommand(instance, meth));
 			}
 		}
 
@@ -138,6 +88,66 @@ namespace BakaCore.Commands
 					break;
 				}
 			}
+		}
+
+		private Command CreateCommand(object instance, MethodInfo meth)
+		{
+			var command = new Command();
+			var attr = meth.GetCustomAttribute<CommandAttribute>();
+			var commandArgs = meth.GetParameters().Skip(1).ToList();
+
+			command.HelpText = attr.Help;
+			command.Commands = attr.Commands;
+			command.UsageString = "";
+			foreach (var arg in commandArgs)
+			{
+				string usage = "";
+				switch (arg)
+				{
+					case ParameterInfo user when (user.ParameterType == typeof(SocketUser)):
+						usage = "<@user>";
+						break;
+				}
+				if (arg.GetCustomAttribute<OptionalAttribute>() != null)
+				{
+					usage = $"[{usage}]";
+				}
+				command.UsageString += " " + usage;
+			}
+
+			command.Invoke = async (message, split) =>
+			{
+				var args = new List<object> { message };
+				var parseIdx = 1;
+				if (!attr.Commands.Contains(split[parseIdx++])) { return false; }
+				if (attr.Subcommand != null && split[parseIdx++] != attr.Subcommand) { return false; }
+				for (int i = 0; i < commandArgs.Count; i++)
+				{
+					var optional = commandArgs[i].GetCustomAttribute<OptionalAttribute>() != null;
+					var parseText = (i + parseIdx >= split.Length) ? "" : split[i + parseIdx];
+					if (!optional && parseText == "") return false;
+					switch (commandArgs[i])
+					{
+						case ParameterInfo arg when (arg.ParameterType == typeof(SocketUser)):
+							if (parseText == "")
+							{
+								args.Add(null);
+							}
+							else if (MentionUtils.TryParseUser(parseText, out var userId))
+							{
+								args.Add(client.GetUser(userId));
+							}
+							else
+							{
+								return false;
+							}
+							break;
+					}
+				}
+				await (Task)meth.Invoke(instance, args.ToArray());
+				return true;
+			};
+			return command;
 		}
 	}
 }
