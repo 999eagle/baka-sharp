@@ -111,6 +111,7 @@ namespace BakaCore.Commands
 
 			command.HelpText = attr.Help;
 			command.Commands = attr.Commands;
+			command.Subcommand = attr.Subcommand;
 			command.UsageString = "";
 			foreach (var arg in commandArgs)
 			{
@@ -119,6 +120,9 @@ namespace BakaCore.Commands
 				{
 					case ParameterInfo user when (user.ParameterType == typeof(SocketUser)):
 						usage = "<@user>";
+						break;
+					case ParameterInfo str when (str.ParameterType == typeof(string)):
+						usage = $"<{str.Name}>";
 						break;
 				}
 				if (arg.GetCustomAttribute<OptionalAttribute>() != null)
@@ -137,12 +141,12 @@ namespace BakaCore.Commands
 				for (int i = 0; i < commandArgs.Count; i++)
 				{
 					var optional = commandArgs[i].GetCustomAttribute<OptionalAttribute>() != null;
-					var parseText = (i + parseIdx >= split.Length) ? "" : split[i + parseIdx];
-					if (!optional && parseText == "") return false;
+					var parseText = (i + parseIdx >= split.Length) ? null : split[i + parseIdx];
+					if (!optional && parseText == null) return false;
 					switch (commandArgs[i])
 					{
 						case ParameterInfo arg when (arg.ParameterType == typeof(SocketUser)):
-							if (parseText == "")
+							if (parseText == null)
 							{
 								args.Add(null);
 							}
@@ -154,6 +158,9 @@ namespace BakaCore.Commands
 							{
 								return false;
 							}
+							break;
+						case ParameterInfo arg when (arg.ParameterType == typeof(string)):
+							args.Add(parseText);
 							break;
 					}
 				}

@@ -6,6 +6,7 @@
 		"Tag": "+"
 	},
 	"API": {
-		"DiscordLoginToken": "<your token here>"
+		"DiscordLoginToken": "<your token here>",
+		"SteamWebAPIKey": ""
 	}
 }

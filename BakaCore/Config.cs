@@ -24,6 +24,7 @@ namespace BakaCore
 		public class API
 		{
 			public string DiscordLoginToken { get; set; }
+			public string SteamWebAPIKey { get; set; }
 		}
 	}
 	public class Configuration
