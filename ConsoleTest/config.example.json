@@ -1,0 +1,9 @@
+﻿{
+	"General": {
+		"LogLevel": "Debug",
+		"CommandTag": "+"
+	},
+	"Discord": {
+		"LoginToken": "<your token here>"
+	}
+}
