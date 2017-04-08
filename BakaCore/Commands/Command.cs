@@ -15,5 +15,7 @@ namespace BakaCore.Commands
 		public string Subcommand { get; set; }
 		public Func<SocketMessage, string[], Task<bool>> Invoke { get; set; }
 		public string UsageString { get; set; }
+
+		public string GetFullUsage() => $"{Commands[0]}{(Subcommand == null ? "" : $" {Subcommand}")}{UsageString}";
 	}
 }

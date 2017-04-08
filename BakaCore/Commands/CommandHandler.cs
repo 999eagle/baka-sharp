@@ -97,7 +97,7 @@ namespace BakaCore.Commands
 			var text = "**Baka-chan**\nMade by **The999eagle#6302**\n\n";
 			foreach (var command in registeredCommands)
 			{
-				text += $"`{config.Commands.Tag}{command.Commands[0]}{(command.Subcommand ?? "")}{command.UsageString}`: {command.HelpText}\n";
+				text += $"`{config.Commands.Tag}{command.GetFullUsage()}`: {command.HelpText}\n";
 			}
 			var channel = await message.Author.CreateDMChannelAsync();
 			await channel.SendMessageAsync(text);
@@ -138,11 +138,16 @@ namespace BakaCore.Commands
 				var parseIdx = 1;
 				if (!attr.Commands.Contains(split[parseIdx++])) { return false; }
 				if (attr.Subcommand != null && split[parseIdx++] != attr.Subcommand) { return false; }
+				var argsMatch = true;
 				for (int i = 0; i < commandArgs.Count; i++)
 				{
 					var optional = commandArgs[i].GetCustomAttribute<OptionalAttribute>() != null;
 					var parseText = (i + parseIdx >= split.Length) ? null : split[i + parseIdx];
-					if (!optional && parseText == null) return false;
+					if (!optional && parseText == null)
+					{
+						argsMatch = false;
+						break;
+					}
 					switch (commandArgs[i])
 					{
 						case ParameterInfo arg when (arg.ParameterType == typeof(SocketUser)):
@@ -156,7 +161,8 @@ namespace BakaCore.Commands
 							}
 							else
 							{
-								return false;
+								argsMatch = false;
+								break;
 							}
 							break;
 						case ParameterInfo arg when (arg.ParameterType == typeof(string)):
@@ -164,7 +170,31 @@ namespace BakaCore.Commands
 							break;
 					}
 				}
-				await (Task)meth.Invoke(instance, args.ToArray());
+				if (argsMatch)
+				{
+					var task = meth.Invoke(instance, args.ToArray());
+					if (task is Task<bool> boolTask)
+					{
+						if (await boolTask)
+						{
+							return true;
+						}
+					}
+					else if (task is Task t)
+					{
+						await t;
+						return true;
+					}
+				}
+				var commandsWithSameName = registeredCommands.Where(c => c.Commands.Contains(split[1])).ToList();
+				if (commandsWithSameName.Count > commandsWithSameName.IndexOf(command) + 1)
+					return false;
+				var text = "Usage:";
+				foreach (var c in commandsWithSameName)
+				{
+					text += $"\n`{config.Commands.Tag}{c.GetFullUsage()}`";
+				}
+				await message.Channel.SendMessageAsync(text);
 				return true;
 			};
 			return command;
