@@ -26,7 +26,7 @@ namespace BakaCore
 				{
 					m += "\n";
 				}
-				m += $"Exception {exception.GetType().Name} thrown in {exception.Source}:\n{exception.Message}\n{exception.StackTrace}";
+				m += $"Exception {exception.GetType().Name} thrown in {exception.Source}:\n{exception.Message}";
 			}
 			return m;
 		}
