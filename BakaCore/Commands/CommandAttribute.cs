@@ -10,7 +10,6 @@ namespace BakaCore.Commands
 		public string[] Commands { get; }
 		public string Subcommand { get; set; }
 		public string Help { get; set; }
-		public string Usage { get; set; }
 
 		public CommandAttribute(params string[] commands)
 		{

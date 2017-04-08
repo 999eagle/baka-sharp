@@ -26,11 +26,18 @@ namespace BakaCore
 			public string DiscordLoginToken { get; set; }
 			public string SteamWebAPIKey { get; set; }
 		}
+		public class Currency
+		{
+			public int StartCurrency { get; set; }
+			public string CurrencyName { get; set; }
+			public string CurrencyCommand { get; set; }
+		}
 	}
 	public class Configuration
 	{
 		public Logging Logging { get; set; }
 		public ConfigClasses.Commands Commands { get; set; }
 		public API API { get; set; }
+		public Currency Currency { get; set; }
 	}
 }

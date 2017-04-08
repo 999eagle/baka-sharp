@@ -43,7 +43,8 @@ namespace BakaCore
 				.AddSingleton<DiscordSocketClient>()
 				.AddSingleton<Commands.CommandHandler>()
 				.AddSingleton<ISteamUser>(new SteamUser(config.API.SteamWebAPIKey))
-				.AddSingleton<ISteamUserStats>(new SteamUserStats(config.API.SteamWebAPIKey));
+				.AddSingleton<ISteamUserStats>(new SteamUserStats(config.API.SteamWebAPIKey))
+				.AddSingleton<Data.IDataStore, Data.JsonStore>();
 			if (config.Logging.LoggerFactory == null)
 			{
 				config.Logging.LoggerFactory = new LoggerFactory();
@@ -63,6 +64,7 @@ namespace BakaCore
 			var commandHandler = services.GetRequiredService<Commands.CommandHandler>();
 			commandHandler.RegisterCommands<Commands.GeneralCommands>();
 			commandHandler.RegisterCommands<Commands.SteamCommands>();
+			commandHandler.RegisterCommands<Commands.CoinsCommands>();
 			try
 			{
 				// Wait until the token is cancelled

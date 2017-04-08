@@ -8,5 +8,10 @@
 	"API": {
 		"DiscordLoginToken": "<your token here>",
 		"SteamWebAPIKey": ""
+	},
+	"Currency": {
+		"StartCurrency": 500,
+		"CurrencyName": "baka coins",
+		"CurrencyCmd": "bc"
 	}
 }
