@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 using Discord.WebSocket;
@@ -16,9 +17,73 @@ namespace BakaCore.Data
 		private Configuration config;
 		private IDictionary<ulong, GuildData> guildData = null;
 
+		private Task saveCoinsTask = null;
+		private CancellationTokenSource scheduledTaskCancelWait = new CancellationTokenSource();
+
 		public JsonStore(Configuration config)
 		{
 			this.config = config;
+		}
+
+		~JsonStore()
+		{
+			scheduledTaskCancelWait.Cancel();
+			if (saveCoinsTask != null)
+			{
+				saveCoinsTask.Wait();
+			}
+		}
+
+		private GuildData CreateNewGuildData(ulong guildId)
+		{
+			var data = new GuildData(config, guildId);
+			data.CoinsChanged += GuildDataCoinsChanged;
+			return data;
+		}
+
+		private void GuildDataCoinsChanged(GuildData guild, ulong userId)
+		{
+			ScheduleSaveCoins();
+		}
+
+		private void ScheduleSaveCoins()
+		{
+			if (saveCoinsTask != null && saveCoinsTask.IsCompleted)
+			{
+				saveCoinsTask.GetAwaiter().GetResult();
+				saveCoinsTask = null;
+			}
+
+			if (saveCoinsTask == null)
+			{
+				saveCoinsTask = SaveCoinsTask();
+			}
+
+			async Task SaveCoinsTask()
+			{
+				try
+				{
+					await Task.Delay(TimeSpan.FromSeconds(30), scheduledTaskCancelWait.Token);
+				}
+				catch (TaskCanceledException) { }
+				using (var file = File.OpenWrite(".\\data\\coins.json"))
+				using (var writer = new StreamWriter(file))
+				{
+					var jObj = new JObject();
+					foreach (var kv in guildData)
+					{
+						var guildObj = new JObject();
+						foreach (var kv2 in kv.Value.GetCoinData())
+						{
+							guildObj.Add(kv2.Key.ToString(), kv2.Value);
+						}
+						jObj.Add(kv.Key.ToString(), guildObj);
+						kv.Value.IsDirty = false;
+					}
+					await writer.WriteAsync(await Task.Factory.StartNew(() => JsonConvert.SerializeObject(jObj)));
+					await writer.FlushAsync();
+				}
+			}
 		}
 
 		private void LoadData()
@@ -35,7 +100,7 @@ namespace BakaCore.Data
 					{
 						var guildId = UInt64.Parse(property.Name);
 						if (!data.ContainsKey(guildId))
-							data.Add(guildId, new GuildData(config, guildId));
+							data.Add(guildId, CreateNewGuildData(guildId));
 						var guild = data[guildId];
 						guild.SetCoinData(((JObject)property.Value).Properties().ToDictionary(p => UInt64.Parse(p.Name), p => (int)p.Value));
 					}
@@ -49,7 +114,7 @@ namespace BakaCore.Data
 			if (guildData == null)
 				LoadData();
 			if (!guildData.ContainsKey(guild.Id))
-				guildData.Add(guild.Id, new GuildData(config, guild.Id));
+				guildData.Add(guild.Id, CreateNewGuildData(guild.Id));
 			return guildData[guild.Id];
 		}
 	}

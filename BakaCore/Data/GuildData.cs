@@ -14,12 +14,17 @@ namespace BakaCore.Data
 
 		public ulong GuildId { get; }
 		public bool IsDirty { get; set; }
-		public event Action<GuildData, string> DataChanged;
+		public event Action<GuildData, ulong> CoinsChanged;
 
 		public GuildData(Configuration config, ulong guildId)
 		{
 			this.config = config;
 			GuildId = guildId;
+		}
+
+		public IDictionary<ulong, int> GetCoinData()
+		{
+			return coins;
 		}
 
 		public void SetCoinData(IDictionary<ulong, int> coins)
@@ -41,7 +46,7 @@ namespace BakaCore.Data
 			else
 				this.coins.Add(user.Id, coins);
 			IsDirty = true;
-			DataChanged?.Invoke(this, nameof(this.coins));
+			CoinsChanged?.Invoke(this, user.Id);
 		}
 	}
 }
