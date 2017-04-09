@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 using BakaCore.Data;
 using Discord.WebSocket;
@@ -15,11 +16,13 @@ namespace BakaCore.Commands
 	{
 		private IDataStore dataStore;
 		private Configuration config;
+		private ILogger logger;
 
 		public CoinsCommands(IServiceProvider services)
 		{
 			dataStore = services.GetRequiredService<IDataStore>();
 			config = services.GetRequiredService<Configuration>();
+			logger = services.GetRequiredService<ILoggerFactory>().CreateLogger<CoinsCommands>();
 		}
 
 		public (MethodInfo meth, ICommandDescription description)[] GetCustomCommands()
@@ -54,6 +57,7 @@ namespace BakaCore.Commands
 				var data = dataStore.GetGuildData(channel.Guild);
 				int coins = data.GetCoins(user) + amount;
 				data.SetCoins(user, coins);
+				logger.LogDebug($"[Spawn] Set coins of user {user.Id} in guild {channel.Guild.Id} to {coins}.");
 				await channel.SendMessageAsync($"{user.Mention} now has {coins} {config.Currency.CurrencyName}");
 			}
 		}

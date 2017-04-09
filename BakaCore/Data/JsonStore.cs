@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 using Discord.WebSocket;
 using Newtonsoft.Json;
@@ -12,20 +13,22 @@ using Newtonsoft.Json.Linq;
 
 namespace BakaCore.Data
 {
-	class JsonStore : IDataStore
+	class JsonStore : IDataStore, IDisposable
 	{
 		private Configuration config;
 		private IDictionary<ulong, GuildData> guildData = null;
+		private ILogger logger;
 
 		private Task saveCoinsTask = null;
 		private CancellationTokenSource scheduledTaskCancelWait = new CancellationTokenSource();
 
-		public JsonStore(Configuration config)
+		public JsonStore(Configuration config, ILoggerFactory loggerFactory)
 		{
 			this.config = config;
+			logger = loggerFactory.CreateLogger<JsonStore>();
 		}
 
-		~JsonStore()
+		public void Dispose()
 		{
 			scheduledTaskCancelWait.Cancel();
 			if (saveCoinsTask != null)
@@ -57,6 +60,7 @@ namespace BakaCore.Data
 			if (saveCoinsTask == null)
 			{
 				saveCoinsTask = SaveCoinsTask();
+				logger.LogInformation("Scheduled saving coins.");
 			}
 
 			async Task SaveCoinsTask()
@@ -66,7 +70,7 @@ namespace BakaCore.Data
 					await Task.Delay(TimeSpan.FromSeconds(30), scheduledTaskCancelWait.Token);
 				}
 				catch (TaskCanceledException) { }
-				using (var file = File.OpenWrite(".\\data\\coins.json"))
+				using (var file = File.Open(".\\data\\coins.json", FileMode.Create, FileAccess.Write))
 				using (var writer = new StreamWriter(file))
 				{
 					var jObj = new JObject();
@@ -83,6 +87,7 @@ namespace BakaCore.Data
 					await writer.WriteAsync(await Task.Factory.StartNew(() => JsonConvert.SerializeObject(jObj)));
 					await writer.FlushAsync();
 				}
+				logger.LogInformation("Saved coins data.");
 			}
 		}
 

@@ -56,6 +56,7 @@ namespace BakaCore
 
 		public async Task Run()
 		{
+			logger.LogInformation($"Starting bot.");
 			Initialize();
 			cancellationTokenSource = new CancellationTokenSource();
 			await client.LoginAsync(TokenType.Bot, config.API.DiscordLoginToken);
@@ -72,6 +73,7 @@ namespace BakaCore
 			}
 			catch (TaskCanceledException)
 			{
+				logger.LogInformation($"Stopping bot.");
 			}
 			await client.SetStatusAsync(UserStatus.Offline);
 			await client.StopAsync();
@@ -80,6 +82,7 @@ namespace BakaCore
 
 		public void Stop()
 		{
+			logger.LogDebug($"Sending stop signal.");
 			cancellationTokenSource.Cancel();
 		}
 

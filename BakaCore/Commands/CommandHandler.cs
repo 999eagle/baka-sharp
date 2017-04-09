@@ -42,16 +42,19 @@ namespace BakaCore.Commands
 					if (parameters.Length == 1 && parameters[0].ParameterType == typeof(IServiceProvider))
 					{
 						instance = (T)ctor.Invoke(new[] { services });
+						logger.LogTrace($"Created instance of {classType.FullName} using IServiceProvider.");
 						break;
 					}
 					if (parameters.Length == 0)
 					{
 						instance = (T)ctor.Invoke(null);
+						logger.LogTrace($"Created instance of {classType.FullName} using parameterless constructor.");
 						break;
 					}
 				}
 				if (instance == null)
 				{
+					logger.LogWarning($"Couldn't create instance of {classType.FullName}. No commands registered.");
 					return;
 				}
 			}
@@ -59,16 +62,20 @@ namespace BakaCore.Commands
 			{
 				var attr = meth.GetCustomAttribute<CommandAttribute>();
 				registeredCommands.Add(CreateCommand(instance, meth, attr));
+				logger.LogTrace($"Registered command method {meth.Name} in {classType.FullName} using reflection.");
 			}
 			var customCommandMethod = classType.GetMethod("GetCustomCommands");
 			if (customCommandMethod != null)
 			{
+				logger.LogTrace($"Found custom commands in {classType.FullName}.");
 				var customCommands = ((MethodInfo meth, ICommandDescription description)[])customCommandMethod.Invoke(instance, null);
 				foreach (var command in customCommands)
 				{
 					registeredCommands.Add(CreateCommand(instance, command.meth, command.description));
+					logger.LogTrace($"Registered custom command method {command.meth.Name} in {classType.FullName}.");
 				}
 			}
+			logger.LogInformation($"Registered commands in Type {classType.FullName}");
 		}
 
 		private async Task MessageReceived(SocketMessage message)
@@ -130,6 +137,9 @@ namespace BakaCore.Commands
 					case ParameterInfo val when (val.ParameterType == typeof(string) || val.ParameterType == typeof(int)):
 						usage = $"<{val.Name}>";
 						break;
+					default:
+						logger.LogWarning($"Unknown parameter type {arg.ParameterType.FullName} for parameter {arg.Name} in command method {meth.Name} in {meth.DeclaringType.FullName} encountered while generating usage text.");
+						break;
 				}
 				if (arg.GetCustomAttribute<OptionalAttribute>() != null)
 				{
@@ -144,6 +154,7 @@ namespace BakaCore.Commands
 				var parseIdx = 1;
 				if (!description.Commands.Contains(split[parseIdx++])) { return false; }
 				if (description.Subcommand != null && split[parseIdx++] != description.Subcommand) { return false; }
+				logger.LogTrace($"Method {meth.Name} in {meth.DeclaringType.FullName} matched command {split[1]}{(description.Subcommand != null ? $" {description.Subcommand}" : "")}.");
 				var argsMatch = true;
 				for (int i = 0; i < commandArgs.Count; i++)
 				{
@@ -185,6 +196,9 @@ namespace BakaCore.Commands
 								break;
 							}
 							break;
+						default:
+							logger.LogWarning($"Unknown parameter type {commandArgs[i].ParameterType.FullName} for parameter {commandArgs[i].Name} in command method {meth.Name} in {meth.DeclaringType.FullName} encountered while parsing command parameters.");
+							break;
 					}
 				}
 				if (argsMatch)
@@ -202,6 +216,10 @@ namespace BakaCore.Commands
 						await t;
 						return true;
 					}
+				}
+				else
+				{
+					logger.LogTrace($"Failed to match arguments.");
 				}
 				var commandsWithSameName = registeredCommands.Where(c => c.Commands.Contains(split[1])).ToList();
 				if (commandsWithSameName.Count > commandsWithSameName.IndexOf(command) + 1)
