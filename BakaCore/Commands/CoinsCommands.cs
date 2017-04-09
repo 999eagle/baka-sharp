@@ -30,7 +30,8 @@ namespace BakaCore.Commands
 			var typeInfo = GetType().GetTypeInfo();
 			return new(MethodInfo, ICommandDescription)[] {
 				(typeInfo.GetMethod(nameof(GetCoinsCommand)), new CommandDescription(config.Currency.CurrencyCommand) { Help = $"Shows how many {config.Currency.CurrencyName} you or another user has." }),
-				(typeInfo.GetMethod(nameof(SpawnCoinsCommand)), new CommandDescription(config.Currency.CurrencyCommand) { Subcommand = "spawn", Help = $"Spawns {config.Currency.CurrencyName} on a user." })
+				(typeInfo.GetMethod(nameof(SpawnCoinsCommand)), new CommandDescription(config.Currency.CurrencyCommand) { Subcommand = "spawn", Help = $"Spawns {config.Currency.CurrencyName} on a user." }),
+				(typeInfo.GetMethod(nameof(DespawnCoinsCommand)), new CommandDescription(config.Currency.CurrencyCommand) { Subcommand = "despawn", Help = $"Depawns {config.Currency.CurrencyName} from a user." })
 			};
 		}
 		
@@ -57,7 +58,30 @@ namespace BakaCore.Commands
 				var data = dataStore.GetGuildData(channel.Guild);
 				int coins = data.GetCoins(user) + amount;
 				data.SetCoins(user, coins);
-				logger.LogDebug($"[Spawn] Set coins of user {user.Id} in guild {channel.Guild.Id} to {coins}.");
+				logger.LogTrace($"[Spawn] Set coins of user {user.Id} in guild {channel.Guild.Id} to {coins}.");
+				await channel.SendMessageAsync($"{user.Mention} now has {coins} {config.Currency.CurrencyName}");
+			}
+		}
+
+		public async Task DespawnCoinsCommand(SocketMessage message, SocketUser user, int amount)
+		{
+			if (message.Channel is SocketTextChannel channel)
+			{
+				if (amount <= 0)
+				{
+					await channel.SendMessageAsync($"Only a positive amount of {config.Currency.CurrencyName} can be despawned.");
+					return;
+				}
+				var data = dataStore.GetGuildData(channel.Guild);
+				int coins = data.GetCoins(user);
+				if (coins < amount)
+				{
+					await channel.SendMessageAsync($"{user.Mention} has only {coins} {config.Currency.CurrencyName}.");
+					return;
+				}
+				coins -= amount;
+				data.SetCoins(user, coins);
+				logger.LogTrace($"[Despawn] Set coins of user {user.Id} in guild {channel.Guild.Id} to {coins}.");
 				await channel.SendMessageAsync($"{user.Mention} now has {coins} {config.Currency.CurrencyName}");
 			}
 		}
