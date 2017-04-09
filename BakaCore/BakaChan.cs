@@ -52,7 +52,8 @@ namespace BakaCore
 					.AddScoped<ISteamUser>((_) => new SteamUser(config.API.SteamWebAPIKey))
 					.AddScoped<ISteamUserStats>((_) => new SteamUserStats(config.API.SteamWebAPIKey))
 					.AddScoped<Commands.CommandHandler>()
-					.AddScoped<Data.IDataStore, Data.JsonStore>();
+					.AddScoped<Data.IDataStore, Data.JsonStore>()
+					.AddScoped((_) => new Random());
 
 				this.services = services.BuildServiceProvider();
 			}
@@ -72,6 +73,7 @@ namespace BakaCore
 			commandHandler.RegisterCommands<Commands.GeneralCommands>();
 			commandHandler.RegisterCommands<Commands.SteamCommands>();
 			commandHandler.RegisterCommands<Commands.CoinsCommands>();
+			commandHandler.RegisterCommands<Commands.GameCommands>();
 			try
 			{
 				// Wait until the token is cancelled
