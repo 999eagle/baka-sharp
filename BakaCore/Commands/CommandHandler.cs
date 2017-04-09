@@ -19,7 +19,7 @@ namespace BakaCore.Commands
 		private ILogger logger;
 		private IServiceProvider services;
 
-		private List<Command> registeredCommands = new List<Command>();
+		private List<CommandDescription> registeredCommands = new List<CommandDescription>();
 
 		public CommandHandler(ILoggerFactory loggerFactory, DiscordSocketClient client, Configuration config, IServiceProvider services)
 		{
@@ -57,7 +57,17 @@ namespace BakaCore.Commands
 			}
 			foreach (var meth in classType.GetMethods().Where(mi => mi.GetCustomAttribute<CommandAttribute>() != null))
 			{
-				registeredCommands.Add(CreateCommand(instance, meth));
+				var attr = meth.GetCustomAttribute<CommandAttribute>();
+				registeredCommands.Add(CreateCommand(instance, meth, attr));
+			}
+			var customCommandMethod = classType.GetMethod("GetCustomCommands");
+			if (customCommandMethod != null)
+			{
+				var customCommands = ((MethodInfo meth, ICommandDescription description)[])customCommandMethod.Invoke(instance, null);
+				foreach (var command in customCommands)
+				{
+					registeredCommands.Add(CreateCommand(instance, command.meth, command.description));
+				}
 			}
 		}
 
@@ -97,21 +107,17 @@ namespace BakaCore.Commands
 			var text = "**Baka-chan**\nMade by **The999eagle#6302**\n\n";
 			foreach (var command in registeredCommands)
 			{
-				text += $"`{config.Commands.Tag}{command.GetFullUsage()}`: {command.HelpText}\n";
+				text += $"`{config.Commands.Tag}{command.GetFullUsage()}`: {command.Help}\n";
 			}
 			var channel = await message.Author.CreateDMChannelAsync();
 			await channel.SendMessageAsync(text);
 		}
 
-		private Command CreateCommand(object instance, MethodInfo meth)
+		private CommandDescription CreateCommand(object instance, MethodInfo meth, ICommandDescription description)
 		{
-			var command = new Command();
-			var attr = meth.GetCustomAttribute<CommandAttribute>();
+			var command = CommandDescription.CreateCommandDescription(description);
 			var commandArgs = meth.GetParameters().Skip(1).ToList();
-
-			command.HelpText = attr.Help;
-			command.Commands = attr.Commands;
-			command.Subcommand = attr.Subcommand;
+			
 			command.UsageString = "";
 			foreach (var arg in commandArgs)
 			{
@@ -136,8 +142,8 @@ namespace BakaCore.Commands
 			{
 				var args = new List<object> { message };
 				var parseIdx = 1;
-				if (!attr.Commands.Contains(split[parseIdx++])) { return false; }
-				if (attr.Subcommand != null && split[parseIdx++] != attr.Subcommand) { return false; }
+				if (!description.Commands.Contains(split[parseIdx++])) { return false; }
+				if (description.Subcommand != null && split[parseIdx++] != description.Subcommand) { return false; }
 				var argsMatch = true;
 				for (int i = 0; i < commandArgs.Count; i++)
 				{

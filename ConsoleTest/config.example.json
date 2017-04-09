@@ -12,6 +12,6 @@
 	"Currency": {
 		"StartCurrency": 500,
 		"CurrencyName": "baka coins",
-		"CurrencyCmd": "bc"
+		"CurrencyCommand": "bc"
 	}
 }
