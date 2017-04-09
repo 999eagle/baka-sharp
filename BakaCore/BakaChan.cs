@@ -19,6 +19,7 @@ namespace BakaCore
 		private Configuration config;
 		private CancellationTokenSource cancellationTokenSource;
 		private IServiceProvider services;
+		private IServiceScope instanceServiceScope;
 		private ILogger logger;
 
 		public BakaChan(Configuration config)
@@ -29,40 +30,45 @@ namespace BakaCore
 
 			var loggerFactory = services.GetRequiredService<ILoggerFactory>();
 			logger = services.GetRequiredService<ILoggerFactory>().CreateLogger<BakaChan>();
-		}
-
-		private void ConfigureServices()
-		{
-			var services = new ServiceCollection();
-			services
-				.AddSingleton(config)
-				.AddSingleton(new DiscordSocketConfig()
-				{
-					LogLevel = LogSeverity.Debug
-				})
-				.AddSingleton<DiscordSocketClient>()
-				.AddSingleton<Commands.CommandHandler>()
-				.AddSingleton<ISteamUser>(new SteamUser(config.API.SteamWebAPIKey))
-				.AddSingleton<ISteamUserStats>(new SteamUserStats(config.API.SteamWebAPIKey))
-				.AddSingleton<Data.IDataStore, Data.JsonStore>();
-			if (config.Logging.LoggerFactory == null)
+				
+			void ConfigureServices()
 			{
-				config.Logging.LoggerFactory = new LoggerFactory();
-			}
-			services.AddSingleton(config.Logging.LoggerFactory);
+				var services = new ServiceCollection();
+				services
+					.AddSingleton(config);
 
-			this.services = services.BuildServiceProvider();
+				if (config.Logging.LoggerFactory == null)
+				{
+					config.Logging.LoggerFactory = new LoggerFactory();
+				}
+				services.AddSingleton(config.Logging.LoggerFactory);
+
+				services
+					.AddScoped((_) => new DiscordSocketConfig()
+					{
+						LogLevel = LogSeverity.Debug
+					})
+					.AddScoped<DiscordSocketClient>()
+					.AddScoped<ISteamUser>((_) => new SteamUser(config.API.SteamWebAPIKey))
+					.AddScoped<ISteamUserStats>((_) => new SteamUserStats(config.API.SteamWebAPIKey))
+					.AddScoped<Commands.CommandHandler>()
+					.AddScoped<Data.IDataStore, Data.JsonStore>();
+
+				this.services = services.BuildServiceProvider();
+			}
 		}
 
 		public async Task Run()
 		{
 			logger.LogInformation($"Starting bot.");
+			instanceServiceScope = services.CreateScope();
 			Initialize();
 			cancellationTokenSource = new CancellationTokenSource();
 			await client.LoginAsync(TokenType.Bot, config.API.DiscordLoginToken);
 			await client.StartAsync();
-			
-			var commandHandler = services.GetRequiredService<Commands.CommandHandler>();
+
+			logger.LogDebug("Registering commands.");
+			var commandHandler = instanceServiceScope.ServiceProvider.GetRequiredService<Commands.CommandHandler>();
 			commandHandler.RegisterCommands<Commands.GeneralCommands>();
 			commandHandler.RegisterCommands<Commands.SteamCommands>();
 			commandHandler.RegisterCommands<Commands.CoinsCommands>();
@@ -78,6 +84,8 @@ namespace BakaCore
 			await client.SetStatusAsync(UserStatus.Offline);
 			await client.StopAsync();
 			await client.LogoutAsync();
+			instanceServiceScope.Dispose();
+			instanceServiceScope = null;
 		}
 
 		public void Stop()
@@ -88,7 +96,7 @@ namespace BakaCore
 
 		private void Initialize()
 		{
-			client = services.GetRequiredService<DiscordSocketClient>();
+			client = instanceServiceScope.ServiceProvider.GetRequiredService<DiscordSocketClient>();
 			client.Log += DispatchDiscordLogMessage;
 			client.Ready += Ready;
 
@@ -125,7 +133,7 @@ namespace BakaCore
 							level = LogLevel.Error;
 							break;
 					}
-					var logger = services.GetRequiredService<ILoggerFactory>().CreateLogger(message.Source);
+					var logger = instanceServiceScope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger(message.Source);
 					logger.Log(level, new EventId(), message.Message, message.Exception, Util.FormatLogMessage);
 				});
 			}
