@@ -25,8 +25,9 @@ namespace BakaCore.Commands
 		public (MethodInfo meth, ICommandDescription description)[] GetCustomCommands()
 		{
 			var typeInfo = GetType().GetTypeInfo();
-			return new (MethodInfo, ICommandDescription)[] {
-				(typeInfo.GetMethod(nameof(GetCoinsCommand)), new CommandDescription(config.Currency.CurrencyCommand) { Help = $"Shows how many {config.Currency.CurrencyName} you or another user has." })
+			return new(MethodInfo, ICommandDescription)[] {
+				(typeInfo.GetMethod(nameof(GetCoinsCommand)), new CommandDescription(config.Currency.CurrencyCommand) { Help = $"Shows how many {config.Currency.CurrencyName} you or another user has." }),
+				(typeInfo.GetMethod(nameof(SpawnCoinsCommand)), new CommandDescription(config.Currency.CurrencyCommand) { Subcommand = "spawn", Help = $"Spawns {config.Currency.CurrencyName} on a user." })
 			};
 		}
 		
@@ -38,6 +39,22 @@ namespace BakaCore.Commands
 				if (user == null)
 					user = message.Author;
 				await channel.SendMessageAsync($"{user.Mention} has {data.GetCoins(user)} {config.Currency.CurrencyName}");
+			}
+		}
+
+		public async Task SpawnCoinsCommand(SocketMessage message, SocketUser user, int amount)
+		{
+			if (message.Channel is SocketTextChannel channel)
+			{
+				if (amount <= 0)
+				{
+					await channel.SendMessageAsync($"Only a positive amount of {config.Currency.CurrencyName} can be spawned.");
+					return;
+				}
+				var data = dataStore.GetGuildData(channel.Guild);
+				int coins = data.GetCoins(user) + amount;
+				data.SetCoins(user, coins);
+				await channel.SendMessageAsync($"{user.Mention} now has {coins} {config.Currency.CurrencyName}");
 			}
 		}
 	}
