@@ -127,8 +127,8 @@ namespace BakaCore.Commands
 					case ParameterInfo user when (user.ParameterType == typeof(SocketUser)):
 						usage = "<@user>";
 						break;
-					case ParameterInfo str when (str.ParameterType == typeof(string)):
-						usage = $"<{str.Name}>";
+					case ParameterInfo val when (val.ParameterType == typeof(string) || val.ParameterType == typeof(int)):
+						usage = $"<{val.Name}>";
 						break;
 				}
 				if (arg.GetCustomAttribute<OptionalAttribute>() != null)
@@ -173,6 +173,17 @@ namespace BakaCore.Commands
 							break;
 						case ParameterInfo arg when (arg.ParameterType == typeof(string)):
 							args.Add(parseText);
+							break;
+						case ParameterInfo arg when (arg.ParameterType == typeof(int)):
+							if (Int32.TryParse(parseText, out int val))
+							{
+								args.Add(val);
+							}
+							else
+							{
+								argsMatch = false;
+								break;
+							}
 							break;
 					}
 				}
