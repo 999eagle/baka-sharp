@@ -18,41 +18,19 @@ namespace BakaCore.Commands
 		private Configuration config;
 		private ILogger logger;
 		private IServiceProvider services;
+		private ArgumentParser parser;
 
 		private List<CommandDescription> registeredCommands = new List<CommandDescription>();
 
-		private IDictionary<Type, Func<string, (bool success, object result)>> simpleParseTypes = new Dictionary<Type, Func<string, (bool success, object result)>>();
-
-		(bool, object) ParseSimpleString(string input)
-		{
-			return (true, input);
-		}
-		(bool, object) ParseSimpleInt(string input)
-		{
-			if (Int32.TryParse(input, out int val))
-				return (true, val);
-			else
-				return (false, null);
-		}
-		(bool, object) ParseSimpleSocketUser(string input)
-		{
-			if (MentionUtils.TryParseUser(input, out var userId))
-				return (true, client.GetUser(userId));
-			else
-				return (false, null);
-		}
-
-		public CommandHandler(ILoggerFactory loggerFactory, DiscordSocketClient client, Configuration config, IServiceProvider services)
+		public CommandHandler(ILoggerFactory loggerFactory, DiscordSocketClient client, Configuration config, IServiceProvider services, ArgumentParser parser)
 		{
 			logger = loggerFactory.CreateLogger<CommandHandler>();
 			this.client = client;
 			this.config = config;
 			this.client.MessageReceived += MessageReceived;
 			this.services = services;
+			this.parser = parser;
 			RegisterCommands(this);
-			simpleParseTypes.Add(typeof(string), ParseSimpleString);
-			simpleParseTypes.Add(typeof(int), ParseSimpleInt);
-			simpleParseTypes.Add(typeof(SocketUser), ParseSimpleSocketUser);
 		}
 
 		public void RegisterCommands<T>(T instance = null) where T : class
@@ -181,7 +159,7 @@ namespace BakaCore.Commands
 				if (!description.Commands.Contains(split[parseIdx++])) { return false; }
 				if (description.Subcommand != null && split[parseIdx++] != description.Subcommand) { return false; }
 				logger.LogTrace($"Method {meth.Name} in {meth.DeclaringType.FullName} matched command {split[1]}{(description.Subcommand != null ? $" {description.Subcommand}" : "")}.");
-				if (TryParseArguments(commandArgs, split.Skip(parseIdx), out var parsed))
+				if (parser.TryParseArguments(commandArgs, split.Skip(parseIdx), out var parsed))
 				{
 					var task = meth.Invoke(instance, new object[] { message }.Concat(parsed).ToArray());
 					if (task is Task<bool> boolTask)
@@ -213,101 +191,6 @@ namespace BakaCore.Commands
 				return true;
 			};
 			return command;
-		}
-
-		bool TryParseArguments(IEnumerable<ParameterInfo> parameters, IEnumerable<string> inputs, out IEnumerable<object> parsed)
-		{
-			parsed = null;
-			var info = parameters.FirstOrDefault();
-			var input = inputs.FirstOrDefault();
-			if (info == null)
-			{
-				if (input == null)
-				{
-					// reached the end of the list
-					parsed = new object[0];
-					return true;
-				}
-				else
-				{
-					// more input than parameters
-					return false;
-				}
-			}
-			var optional = info.GetCustomAttribute<OptionalAttribute>() != null;
-			object parsedObject = null;
-			int parsedInputCount = 0;
-			switch (info)
-			{
-				case ParameterInfo arg when (simpleParseTypes.ContainsKey(arg.ParameterType)):
-					(bool success, object parseResult) = simpleParseTypes[arg.ParameterType](input);
-					if (success)
-					{
-						parsedInputCount = 1;
-						parsedObject = parseResult;
-					}
-					break;
-				case ParameterInfo arg when (arg.ParameterType.IsArray && arg.ParameterType.GetElementType() is Type elementType && simpleParseTypes.ContainsKey(elementType)):
-					var separatorAttr = arg.GetCustomAttribute<ListSeparatorAttribute>();
-					IEnumerable<string> items;
-					if (separatorAttr != null)
-					{
-						items = String.Join(" ", inputs).Split(new[] { separatorAttr.Separator }, StringSplitOptions.None).Select(s => s.Trim());
-					}
-					else
-					{
-						items = inputs;
-					}
-					var objects = new List<object>();
-					(bool success, object result) tuple;
-					while (items.Any())
-					{
-						tuple = simpleParseTypes[elementType](items.FirstOrDefault());
-						items = items.Skip(1);
-						if (tuple.success)
-						{
-							objects.Add(tuple.result);
-						}
-						else
-						{
-							objects.Clear();
-							break;
-						}
-					}
-					if (objects.Any())
-					{
-						parsedInputCount = inputs.Count();
-						var array = Array.CreateInstance(elementType, objects.Count);
-						for (int i = 0; i < array.Length; i++)
-						{
-							array.SetValue(objects[i], i);
-						}
-						parsedObject = array;
-					}
-					break;
-				default:
-					logger.LogWarning($"Unknown parameter type {info.ParameterType.FullName} for parameter {info.Name} in command method {info.Member.Name} in {info.Member.DeclaringType.FullName} encountered while parsing command parameters.");
-					break;
-			}
-			if (parsedInputCount == 0 && !optional)
-			{
-				// couldn't parse, but argument isn't optional
-				return false;
-			}
-			if (TryParseArguments(parameters.Skip(1), inputs.Skip(parsedInputCount), out var subParsed))
-			{
-				parsed = new object[] { parsedObject }.Concat(subParsed);
-				return true;
-			}
-			else
-			{
-				if (optional && TryParseArguments(parameters.Skip(1), inputs, out subParsed))
-				{
-					parsed = new object[] { parsedObject }.Concat(subParsed);
-					return true;
-				}
-			}
-			return false;
 		}
 	}
 }

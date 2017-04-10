@@ -52,6 +52,7 @@ namespace BakaCore
 					.AddScoped<ISteamUser>((_) => new SteamUser(config.API.SteamWebAPIKey))
 					.AddScoped<ISteamUserStats>((_) => new SteamUserStats(config.API.SteamWebAPIKey))
 					.AddScoped<Commands.CommandHandler>()
+					.AddScoped<Commands.ArgumentParser>()
 					.AddScoped<Data.IDataStore, Data.JsonStore>()
 					.AddScoped((_) => new Random());
 
