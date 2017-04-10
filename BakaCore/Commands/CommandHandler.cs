@@ -247,6 +247,44 @@ namespace BakaCore.Commands
 						parsedObject = parseResult;
 					}
 					break;
+				case ParameterInfo arg when (arg.ParameterType.IsArray && arg.ParameterType.GetElementType() is Type elementType && simpleParseTypes.ContainsKey(elementType)):
+					var separatorAttr = arg.GetCustomAttribute<ListSeparatorAttribute>();
+					IEnumerable<string> items;
+					if (separatorAttr != null)
+					{
+						items = String.Join(" ", inputs).Split(new[] { separatorAttr.Separator }, StringSplitOptions.None).Select(s => s.Trim());
+					}
+					else
+					{
+						items = inputs;
+					}
+					var objects = new List<object>();
+					(bool success, object result) tuple;
+					while (items.Any())
+					{
+						tuple = simpleParseTypes[elementType](items.FirstOrDefault());
+						items = items.Skip(1);
+						if (tuple.success)
+						{
+							objects.Add(tuple.result);
+						}
+						else
+						{
+							objects.Clear();
+							break;
+						}
+					}
+					if (objects.Any())
+					{
+						parsedInputCount = inputs.Count();
+						var array = Array.CreateInstance(elementType, objects.Count);
+						for (int i = 0; i < array.Length; i++)
+						{
+							array.SetValue(objects[i], i);
+						}
+						parsedObject = array;
+					}
+					break;
 				default:
 					logger.LogWarning($"Unknown parameter type {info.ParameterType.FullName} for parameter {info.Name} in command method {info.Member.Name} in {info.Member.DeclaringType.FullName} encountered while parsing command parameters.");
 					break;
