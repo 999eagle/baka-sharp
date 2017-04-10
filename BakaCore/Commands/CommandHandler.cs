@@ -182,7 +182,6 @@ namespace BakaCore.Commands
 							else
 							{
 								argsMatch = false;
-								break;
 							}
 							break;
 						case ParameterInfo arg when (arg.ParameterType == typeof(string)):
@@ -196,13 +195,14 @@ namespace BakaCore.Commands
 							else
 							{
 								argsMatch = false;
-								break;
 							}
 							break;
 						default:
 							logger.LogWarning($"Unknown parameter type {commandArgs[i].ParameterType.FullName} for parameter {commandArgs[i].Name} in command method {meth.Name} in {meth.DeclaringType.FullName} encountered while parsing command parameters.");
 							break;
 					}
+					if (!argsMatch)
+						break;
 				}
 				if (argsMatch)
 				{
