@@ -123,7 +123,7 @@ namespace BakaCore.Commands
 		private CommandDescription CreateCommand(object instance, MethodInfo meth, ICommandDescription description)
 		{
 			var command = CommandDescription.CreateCommandDescription(description);
-			var commandArgs = meth.GetParameters().Skip(1).ToList();
+			var commandArgs = meth.GetParameters().Skip(1);
 			
 			command.UsageString = "";
 			foreach (var arg in commandArgs)
@@ -153,60 +153,13 @@ namespace BakaCore.Commands
 
 			command.Invoke = async (message, split) =>
 			{
-				var args = new List<object> { message };
 				var parseIdx = 1;
 				if (!description.Commands.Contains(split[parseIdx++])) { return false; }
 				if (description.Subcommand != null && split[parseIdx++] != description.Subcommand) { return false; }
 				logger.LogTrace($"Method {meth.Name} in {meth.DeclaringType.FullName} matched command {split[1]}{(description.Subcommand != null ? $" {description.Subcommand}" : "")}.");
-				var argsMatch = true;
-				for (int i = 0; i < commandArgs.Count; i++)
+				if (TryParseArguments(commandArgs, split.Skip(parseIdx), out var parsed))
 				{
-					var optional = commandArgs[i].GetCustomAttribute<OptionalAttribute>() != null;
-					var parseText = (i + parseIdx >= split.Length) ? null : split[i + parseIdx];
-					if (!optional && parseText == null)
-					{
-						argsMatch = false;
-						break;
-					}
-					switch (commandArgs[i])
-					{
-						case ParameterInfo arg when (arg.ParameterType == typeof(SocketUser)):
-							if (parseText == null)
-							{
-								args.Add(null);
-							}
-							else if (MentionUtils.TryParseUser(parseText, out var userId))
-							{
-								args.Add(client.GetUser(userId));
-							}
-							else
-							{
-								argsMatch = false;
-							}
-							break;
-						case ParameterInfo arg when (arg.ParameterType == typeof(string)):
-							args.Add(parseText);
-							break;
-						case ParameterInfo arg when (arg.ParameterType == typeof(int)):
-							if (Int32.TryParse(parseText, out int val))
-							{
-								args.Add(val);
-							}
-							else
-							{
-								argsMatch = false;
-							}
-							break;
-						default:
-							logger.LogWarning($"Unknown parameter type {commandArgs[i].ParameterType.FullName} for parameter {commandArgs[i].Name} in command method {meth.Name} in {meth.DeclaringType.FullName} encountered while parsing command parameters.");
-							break;
-					}
-					if (!argsMatch)
-						break;
-				}
-				if (argsMatch)
-				{
-					var task = meth.Invoke(instance, args.ToArray());
+					var task = meth.Invoke(instance, new object[] { message }.Concat(parsed).ToArray());
 					if (task is Task<bool> boolTask)
 					{
 						if (await boolTask)
@@ -236,6 +189,73 @@ namespace BakaCore.Commands
 				return true;
 			};
 			return command;
+		}
+
+		bool TryParseArguments(IEnumerable<ParameterInfo> parameters, IEnumerable<string> inputs, out IEnumerable<object> parsed)
+		{
+			parsed = null;
+			var info = parameters.FirstOrDefault();
+			var input = inputs.FirstOrDefault();
+			if (info == null)
+			{
+				if (input == null)
+				{
+					// reached the end of the list
+					parsed = new object[0];
+					return true;
+				}
+				else
+				{
+					// more input than parameters
+					return false;
+				}
+			}
+			var optional = info.GetCustomAttribute<OptionalAttribute>() != null;
+			object parsedObject = null;
+			int parsedInputCount = 0;
+			switch (info)
+			{
+				case ParameterInfo arg when (arg.ParameterType == typeof(SocketUser)):
+					if (input != null && MentionUtils.TryParseUser(input, out var userId))
+					{
+						parsedObject = client.GetUser(userId);
+						parsedInputCount = 1;
+					}
+					break;
+				case ParameterInfo arg when (arg.ParameterType == typeof(string)):
+					parsedObject = input;
+					parsedInputCount = 1;
+					break;
+				case ParameterInfo arg when (arg.ParameterType == typeof(int)):
+					if (Int32.TryParse(input, out int val))
+					{
+						parsedObject = val;
+						parsedInputCount = 1;
+					}
+					break;
+				default:
+					logger.LogWarning($"Unknown parameter type {info.ParameterType.FullName} for parameter {info.Name} in command method {info.Member.Name} in {info.Member.DeclaringType.FullName} encountered while parsing command parameters.");
+					break;
+			}
+			if (parsedInputCount == 0 && !optional)
+			{
+				// couldn't parse, but argument isn't optional
+				return false;
+			}
+			if (TryParseArguments(parameters.Skip(1), inputs.Skip(parsedInputCount), out var subParsed))
+			{
+				parsed = new object[] { parsedObject }.Concat(subParsed);
+				return true;
+			}
+			else
+			{
+				if (optional && TryParseArguments(parameters.Skip(1), inputs, out subParsed))
+				{
+					parsed = new object[] { parsedObject }.Concat(subParsed);
+					return true;
+				}
+			}
+			return false;
 		}
 	}
 }
