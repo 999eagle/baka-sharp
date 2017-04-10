@@ -17,4 +17,15 @@ namespace BakaCore.Commands
 			Usage = usage;
 		}
 	}
+
+	[AttributeUsage(AttributeTargets.Parameter)]
+	class ListSeparatorAttribute : Attribute
+	{
+		public string Separator { get; }
+
+		public ListSeparatorAttribute(string separator)
+		{
+			Separator = separator;
+		}
+	}
 }

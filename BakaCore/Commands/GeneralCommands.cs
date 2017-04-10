@@ -83,5 +83,19 @@ namespace BakaCore.Commands
 				return false;
 			}
 		}
+
+		[Command("choose", Help = "Choose one option from a list of choices.")]
+		public async Task ChooseCommand(SocketMessage message, [CustomUsageText("<choice> | <choice> | ...")][ListSeparator("|")]string[] arguments)
+		{
+			if (arguments.Length == 1)
+			{
+				await message.Channel.SendMessageAsync("I have to choose from a single option... That's difficult...\nI don't think I can do it.");
+			}
+			else
+			{
+				int idx = rand.Next(arguments.Length);
+				await message.Channel.SendMessageAsync($"I pick **{arguments[idx]}**.");
+			}
+		}
 	}
 }
