@@ -131,6 +131,9 @@ namespace BakaCore.Commands
 				string usage = "";
 				switch (arg)
 				{
+					case ParameterInfo customUsageParam when (customUsageParam.GetCustomAttribute<CustomUsageTextAttribute>() is CustomUsageTextAttribute attribute):
+						usage = attribute.Usage;
+						break;
 					case ParameterInfo user when (user.ParameterType == typeof(SocketUser)):
 						usage = "<@user>";
 						break;
