@@ -21,6 +21,27 @@ namespace BakaCore.Commands
 
 		private List<CommandDescription> registeredCommands = new List<CommandDescription>();
 
+		private IDictionary<Type, Func<string, (bool success, object result)>> simpleParseTypes = new Dictionary<Type, Func<string, (bool success, object result)>>();
+
+		(bool, object) ParseSimpleString(string input)
+		{
+			return (true, input);
+		}
+		(bool, object) ParseSimpleInt(string input)
+		{
+			if (Int32.TryParse(input, out int val))
+				return (true, val);
+			else
+				return (false, null);
+		}
+		(bool, object) ParseSimpleSocketUser(string input)
+		{
+			if (MentionUtils.TryParseUser(input, out var userId))
+				return (true, client.GetUser(userId));
+			else
+				return (false, null);
+		}
+
 		public CommandHandler(ILoggerFactory loggerFactory, DiscordSocketClient client, Configuration config, IServiceProvider services)
 		{
 			logger = loggerFactory.CreateLogger<CommandHandler>();
@@ -29,6 +50,9 @@ namespace BakaCore.Commands
 			this.client.MessageReceived += MessageReceived;
 			this.services = services;
 			RegisterCommands(this);
+			simpleParseTypes.Add(typeof(string), ParseSimpleString);
+			simpleParseTypes.Add(typeof(int), ParseSimpleInt);
+			simpleParseTypes.Add(typeof(SocketUser), ParseSimpleSocketUser);
 		}
 
 		public void RegisterCommands<T>(T instance = null) where T : class
@@ -215,22 +239,12 @@ namespace BakaCore.Commands
 			int parsedInputCount = 0;
 			switch (info)
 			{
-				case ParameterInfo arg when (arg.ParameterType == typeof(SocketUser)):
-					if (input != null && MentionUtils.TryParseUser(input, out var userId))
+				case ParameterInfo arg when (simpleParseTypes.ContainsKey(arg.ParameterType)):
+					(bool success, object parseResult) = simpleParseTypes[arg.ParameterType](input);
+					if (success)
 					{
-						parsedObject = client.GetUser(userId);
 						parsedInputCount = 1;
-					}
-					break;
-				case ParameterInfo arg when (arg.ParameterType == typeof(string)):
-					parsedObject = input;
-					parsedInputCount = 1;
-					break;
-				case ParameterInfo arg when (arg.ParameterType == typeof(int)):
-					if (Int32.TryParse(input, out int val))
-					{
-						parsedObject = val;
-						parsedInputCount = 1;
+						parsedObject = parseResult;
 					}
 					break;
 				default:
