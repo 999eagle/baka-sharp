@@ -91,7 +91,9 @@ namespace BakaCore.Commands
 		{
 			if (arguments.Length == 1)
 			{
-				await message.Channel.SendMessageAsync("I have to choose from a single option... That's difficult...\nI don't think I can do it.");
+				await message.Channel.SendMessageAsync("I have to choose from a single option... That's difficult...");
+				await Task.Delay(TimeSpan.FromSeconds(10));
+				await message.Channel.SendMessageAsync($"I've chosen! I pick **{arguments[0]}**.");
 			}
 			else
 			{
