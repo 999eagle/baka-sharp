@@ -13,5 +13,23 @@
 		"StartCurrency": 500,
 		"CurrencyName": "baka coins",
 		"CurrencyCommand": "bc"
+	},
+	"Images": {
+		"BaseUrl": "http://example.com/img/",
+		"ImageData": {
+			"poke": {
+				"FileName": "poke.jpg"
+			},
+			"gtfo": {
+				"FileName": "gtfo{0}.jpg",
+				"Count": 3
+			},
+			"respect": {
+				"FileName": "pay_respects.jpg"
+			},
+			"slap": {
+				"FileName": "slap.gif"
+			}
+		}
 	}
 }
