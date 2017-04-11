@@ -80,34 +80,44 @@ namespace BakaCore.Commands
 			logger.LogInformation($"Registered commands in Type {classType.FullName}");
 		}
 
-		private async Task MessageReceived(SocketMessage message)
+		private Task MessageReceived(SocketMessage message)
 		{
-			if (message.Content.Length == 0) return;
-			logger.LogTrace($"Message received: {message.Content}");
-			if (config.Commands.Disabled) return;
-
-			// split message and normalize array for the tag
-			var command = message.Content.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).ToList();
-			if (!config.Commands.Tag.EndsWith(" ") && command[0].StartsWith(config.Commands.Tag))
+			var backgroundStuff = Task.Run(() =>
 			{
-				if (command[0].Length == config.Commands.Tag.Length)
+				if (message.Content.Length == 0) return;
+				logger.LogTrace($"Message received: {message.Content}");
+				if (config.Commands.Disabled) return;
+				// split message and normalize array for the tag
+				var command = message.Content.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).ToList();
+				if (!config.Commands.Tag.EndsWith(" ") && command[0].StartsWith(config.Commands.Tag))
 				{
-					command.RemoveAt(0);
+					if (command[0].Length == config.Commands.Tag.Length)
+					{
+						command.RemoveAt(0);
+					}
+					else
+					{
+						command[0] = command[0].Substring(config.Commands.Tag.Length);
+					}
+					command.Insert(0, config.Commands.Tag);
 				}
-				else
+				var split = command.ToArray();
+				foreach (var cmd in registeredCommands)
 				{
-					command[0] = command[0].Substring(config.Commands.Tag.Length);
+					if (cmd.Invoke(message, split).GetAwaiter().GetResult())
+					{
+						break;
+					}
 				}
-				command.Insert(0, config.Commands.Tag);
-			}
-			var split = command.ToArray();
-			foreach (var cmd in registeredCommands)
+			});
+			backgroundStuff.ContinueWith((task) =>
 			{
-				if (await cmd.Invoke(message, split))
+				if (task.Exception != null)
 				{
-					break;
+					logger.LogError(new EventId(), task.Exception, "Unhandled exception throw in MessageReceived handler!");
 				}
-			}
+			});
+			return Task.CompletedTask;
 		}
 
 		[Command("help", Help = "Shows this help")]
