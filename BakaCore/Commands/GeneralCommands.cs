@@ -12,10 +12,12 @@ namespace BakaCore.Commands
 	class GeneralCommands
 	{
 		private Random rand;
+		private ImageService imageService;
 
 		public GeneralCommands(IServiceProvider services)
 		{
 			rand = services.GetRequiredService<Random>();
+			imageService = services.GetRequiredService<ImageService>();
 		}
 
 		[Command("mods", Help = "Shows the mods on the server.")]
@@ -102,10 +104,8 @@ namespace BakaCore.Commands
 		public async Task PokeCommand(SocketMessage message, [Optional]SocketUser user)
 		{
 			user = user ?? message.Author;
-			await message.Channel.SendMessageAsync($"*Baka-chan pokes {user.Mention}", false,
-				new EmbedBuilder()
-					.WithImageUrl("https://baka-chan.999eagle.moe/img/poke.jpg")
-					.Build());
+			await message.Channel.SendMessageAsync($"*Baka-chan pokes {user.Mention}*", false,
+				imageService.GetImageEmbed("poke"));
 		}
 	}
 }
