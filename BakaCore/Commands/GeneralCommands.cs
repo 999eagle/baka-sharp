@@ -107,5 +107,18 @@ namespace BakaCore.Commands
 			await message.Channel.SendMessageAsync($"*Baka-chan pokes {user.Mention}*", false,
 				imageService.GetImageEmbed("poke"));
 		}
+
+		[Command("slap", Help = "Slap someone.")]
+		public async Task SlapCommand(SocketMessage message, [Optional]SocketUser user)
+		{
+			user = user ?? message.Author;
+			await message.Channel.SendMessageAsync($"*Baka-chan slaps {user.Mention}*", false, imageService.GetImageEmbed("slap"));
+		}
+
+		[Command("f", Help = "Pay respects.")]
+		public async Task FCommand(SocketMessage message)
+		{
+			await message.Channel.SendMessageAsync("", false, imageService.GetImageEmbed("respect"));
+		}
 	}
 }
