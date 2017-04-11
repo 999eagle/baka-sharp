@@ -48,6 +48,16 @@ namespace BakaCore
 			public string CurrencyName { get; set; }
 			public string CurrencyCommand { get; set; }
 		}
+		public class Images
+		{
+			public string BaseURL { get; set; }
+			public IDictionary<string, _ImageData> ImageData { get; set; }
+			public class _ImageData
+			{
+				public string FileName { get; set; }
+				public int Count { get; set; }
+			}
+		}
 	}
 	public class Configuration
 	{
@@ -55,5 +65,6 @@ namespace BakaCore
 		public ConfigClasses.Commands Commands { get; set; }
 		public API API { get; set; }
 		public Currency Currency { get; set; }
+		public Images Images { get; set; }
 	}
 }

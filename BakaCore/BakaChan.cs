@@ -54,7 +54,8 @@ namespace BakaCore
 					.AddScoped<Commands.CommandHandler>()
 					.AddScoped<Commands.ArgumentParser>()
 					.AddScoped<Data.IDataStore, Data.JsonStore>()
-					.AddScoped((_) => new Random());
+					.AddScoped((_) => new Random())
+					.AddScoped<ImageService>();
 
 				this.services = services.BuildServiceProvider();
 			}
