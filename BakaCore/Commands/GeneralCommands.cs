@@ -97,5 +97,15 @@ namespace BakaCore.Commands
 				await message.Channel.SendMessageAsync($"I pick **{arguments[idx]}**.");
 			}
 		}
+
+		[Command("poke", Help = "Poke someone.")]
+		public async Task PokeCommand(SocketMessage message, [Optional]SocketUser user)
+		{
+			user = user ?? message.Author;
+			await message.Channel.SendMessageAsync($"*Baka-chan pokes {user.Mention}", false,
+				new EmbedBuilder()
+					.WithImageUrl("https://baka-chan.999eagle.moe/img/poke.jpg")
+					.Build());
+		}
 	}
 }
