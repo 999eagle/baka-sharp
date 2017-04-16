@@ -11,12 +11,14 @@ namespace BakaCore.Data
 	{
 		private IDictionary<ulong, int> coins;
 		private IDictionary<string, string> settings;
+		private IDictionary<ulong, Permissions> permissions;
 		private Configuration config;
 
 		public ulong GuildId { get; }
 		public bool IsDirty { get; set; }
 		public event Action<GuildData, ulong> CoinsChanged;
 		public event Action<GuildData> SettingsChanged;
+		public event Action<GuildData, ulong> PermissionsChanged;
 
 		public GuildData(Configuration config, ulong guildId, bool setDefaults)
 		{
@@ -32,6 +34,7 @@ namespace BakaCore.Data
 					{ "strike_4", "mutetext,mutevoice" },
 					{ "strike_5", "ban" }
 				};
+				permissions = new Dictionary<ulong, Permissions>();
 			}
 		}
 
@@ -41,6 +44,7 @@ namespace BakaCore.Data
 		}
 
 		public IDictionary<string, string> GetSettingsData() => settings;
+		public IDictionary<ulong, Permissions> GetPermissionsData() => permissions;
 
 		public void SetCoinData(IDictionary<ulong, int> coins)
 		{
@@ -51,6 +55,7 @@ namespace BakaCore.Data
 		{
 			this.settings = settings;
 		}
+		public void SetPermissionsData(IDictionary<ulong, Permissions> permissions) { this.permissions = permissions; }
 
 		public int GetCoins(SocketUser user)
 		{
@@ -93,6 +98,21 @@ namespace BakaCore.Data
 		{
 			settings["welcomeChannel"] = channel.ToString();
 			SettingsChanged?.Invoke(this);
+		}
+
+		public Permissions GetPermissions(SocketEntity<ulong> entity)
+		{
+			if (permissions.ContainsKey(entity.Id))
+				return permissions[entity.Id];
+			return Permissions.None;
+		}
+
+		public void SetPermissions(SocketEntity<ulong> entity, Permissions permissions)
+		{
+			if (!(entity is SocketUser) && !(entity is SocketRole)) throw new ArgumentException("entity");
+			this.permissions[entity.Id] = permissions;
+			IsDirty = true;
+			PermissionsChanged?.Invoke(this, entity.Id);
 		}
 	}
 }
