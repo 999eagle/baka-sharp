@@ -33,7 +33,7 @@ namespace BakaCore.Commands
 				case "welcome":
 				case "welcomechannel":
 					await message.Channel.SendMessageAsync("Type \"yes\" within 5 seconds to announce newly joined users in this channel.");
-					var answer = await channel.WaitForMessage(TimeSpan.FromSeconds(5), m => (m.Author == message.Author && m.Content == "yes"));
+					var answer = await channel.WaitForMessage(TimeSpan.FromSeconds(5), m => (m.Channel == message.Channel && m.Author == message.Author && m.Content == "yes"));
 					if (answer == null)
 					{
 						await channel.SendMessageAsync("Time expired; nothing was changed.");
