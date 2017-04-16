@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 
 using Discord;
 using Discord.WebSocket;
+using BakaCore.Data;
 
 namespace BakaCore.Commands
 {
@@ -19,10 +20,11 @@ namespace BakaCore.Commands
 		private ILogger logger;
 		private IServiceProvider services;
 		private ArgumentParser parser;
+		private IDataStore dataStore;
 
 		private List<CommandDescription> registeredCommands = new List<CommandDescription>();
 
-		public CommandHandler(ILoggerFactory loggerFactory, DiscordSocketClient client, Configuration config, IServiceProvider services, ArgumentParser parser)
+		public CommandHandler(ILoggerFactory loggerFactory, DiscordSocketClient client, Configuration config, IServiceProvider services, ArgumentParser parser, IDataStore dataStore)
 		{
 			logger = loggerFactory.CreateLogger<CommandHandler>();
 			this.client = client;
@@ -30,6 +32,7 @@ namespace BakaCore.Commands
 			this.client.MessageReceived += MessageReceived;
 			this.services = services;
 			this.parser = parser;
+			this.dataStore = dataStore;
 			RegisterCommands(this);
 		}
 
@@ -169,6 +172,11 @@ namespace BakaCore.Commands
 				if (!description.Commands.Contains(split[parseIdx++])) { return false; }
 				if (description.Subcommand != null && split[parseIdx++] != description.Subcommand) { return false; }
 				logger.LogTrace($"Method {meth.Name} in {meth.DeclaringType.FullName} matched command {split[1]}{(description.Subcommand != null ? $" {description.Subcommand}" : "")}.");
+				if (description.RequiredPermissions != Permissions.None && message.Channel is SocketGuildChannel guildChannel && !dataStore.GetGuildData(guildChannel.Guild).UserHasPermission(message.Author, description.RequiredPermissions))
+				{
+					await message.Channel.SendMessageAsync("You don't have the necessary permissions for this command.");
+					return true;
+				}
 				if (parser.TryParseArguments(commandArgs, split.Skip(parseIdx), out var parsed))
 				{
 					var task = meth.Invoke(instance, new object[] { message }.Concat(parsed).ToArray());

@@ -23,7 +23,7 @@ namespace BakaCore.Commands
 			logger = services.GetRequiredService<ILoggerFactory>().CreateLogger<SettingsCommands>();
 		}
 
-		[Command("settings", Subcommand = "set", Help = "Change a setting.")]
+		[Command("settings", Subcommand = "set", Help = "Change a setting.", RequiredPermissions = Permissions.Settings)]
 		public async Task SetSettingCommand(SocketMessage message, string setting, [CustomUsageText("<value>")][Optional]string[] args)
 		{
 			if (!(message.Channel is SocketTextChannel channel))
@@ -51,7 +51,7 @@ namespace BakaCore.Commands
 			}
 		}
 
-		[Command("settings", Subcommand = "get", Help = "Get a setting.")]
+		[Command("settings", Subcommand = "get", Help = "Get a setting.", RequiredPermissions = Permissions.Settings)]
 		public async Task GetSettingCommand(SocketMessage message, string setting)
 		{
 			if (!(message.Channel is SocketTextChannel channel))
