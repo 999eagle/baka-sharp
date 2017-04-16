@@ -53,6 +53,7 @@ namespace BakaCore
 					.AddScoped<ISteamUserStats>((_) => new SteamUserStats(config.API.SteamWebAPIKey))
 					.AddScoped<Commands.CommandHandler>()
 					.AddScoped<Commands.ArgumentParser>()
+					.AddScoped<Greeting>()
 					.AddScoped<Data.IDataStore, Data.JsonStore>()
 					.AddScoped((_) => new Random())
 					.AddScoped<ImageService>();
@@ -77,6 +78,7 @@ namespace BakaCore
 			commandHandler.RegisterCommands<Commands.CoinsCommands>();
 			commandHandler.RegisterCommands<Commands.GameCommands>();
 			commandHandler.RegisterCommands<Commands.SettingsCommands>();
+			var greetings = instanceServiceScope.ServiceProvider.GetRequiredService<Greeting>();
 			try
 			{
 				// Wait until the token is cancelled
