@@ -76,5 +76,40 @@ namespace BakaCore.Commands
 					break;
 			}
 		}
+
+		[Command("perms", Help = "Displays permissions.", RequiredPermissions = Permissions.DisplayPermissions)]
+		public async Task DisplayPermissionsCommand(SocketMessage message, IMentionable mention)
+		{
+			if (!(message.Channel is SocketTextChannel channel))
+				return;
+			var guildData = dataStore.GetGuildData(channel.Guild);
+			Func<Permissions, bool> checkPermission;
+			if (mention is SocketRole role)
+			{
+				checkPermission = (p => guildData.RoleHasPermission(role, p));
+			}
+			else if (mention is SocketUser user)
+			{
+				var guildUser = channel.GetUser(user.Id);
+				checkPermission = (p => guildData.UserHasPermission(guildUser, p));
+			}
+			else
+				return;
+			var text = "";
+			foreach (Permissions perm in Enum.GetValues(typeof(Permissions)))
+			{
+				if (perm != Permissions.None && checkPermission(perm))
+				{
+					if (text != "")
+						text += ", ";
+					text += perm.ToString();
+				}
+			}
+			if (text == "")
+				text = "no special permissions.";
+			else
+				text = "these permissions: " + text + ".";
+			await channel.SendMessageAsync($"{mention.Mention} has " + text);
+		}
 	}
 }
