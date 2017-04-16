@@ -111,5 +111,33 @@ namespace BakaCore.Commands
 				text = "these permissions: " + text + ".";
 			await channel.SendMessageAsync($"{mention.Mention} has " + text);
 		}
+
+		[Command("perms", Subcommand = "give", Help = "Gives permissions.", RequiredPermissions = Permissions.EditPermissions)]
+		public async Task GivePermissionCommand(SocketMessage message, IMentionable mention, string permission)
+		{
+			if (!(message.Channel is SocketTextChannel channel))
+				return;
+			if (!(mention is SocketEntity<ulong> entity))
+				return;
+			if (!Enum.TryParse<Permissions>(permission, true, out var perm))
+				await channel.SendMessageAsync("Unknown permission.");
+			var guildData = dataStore.GetGuildData(channel.Guild);
+			guildData.AddPermission(entity, perm);
+			await channel.SendMessageAsync($"Added permission {perm.ToString()} to {mention.Mention}");
+		}
+
+		[Command("perms", Subcommand = "remove", Help = "Removes permissions.", RequiredPermissions = Permissions.EditPermissions)]
+		public async Task RemovePermissionCommand(SocketMessage message, IMentionable mention, string permission)
+		{
+			if (!(message.Channel is SocketTextChannel channel))
+				return;
+			if (!(mention is SocketEntity<ulong> entity))
+				return;
+			if (!Enum.TryParse<Permissions>(permission, true, out var perm))
+				await channel.SendMessageAsync("Unknown permission.");
+			var guildData = dataStore.GetGuildData(channel.Guild);
+			guildData.RemovePermission(entity, perm);
+			await channel.SendMessageAsync($"Removed permission {perm.ToString()} from {mention.Mention}");
+		}
 	}
 }
