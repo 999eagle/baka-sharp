@@ -76,6 +76,7 @@ namespace BakaCore
 			commandHandler.RegisterCommands<Commands.SteamCommands>();
 			commandHandler.RegisterCommands<Commands.CoinsCommands>();
 			commandHandler.RegisterCommands<Commands.GameCommands>();
+			commandHandler.RegisterCommands<Commands.SettingsCommands>();
 			try
 			{
 				// Wait until the token is cancelled
