@@ -28,6 +28,7 @@ namespace BakaCore.Commands
 		{
 			if (!(message.Channel is SocketTextChannel channel))
 				return;
+			var guildData = dataStore.GetGuildData(channel.Guild);
 			switch (setting)
 			{
 				case "welcome":
@@ -40,9 +41,38 @@ namespace BakaCore.Commands
 					}
 					else
 					{
-						dataStore.GetGuildData(channel.Guild).SetWelcomeChannel(channel.Id);
+						guildData.SetWelcomeChannel(channel.Id);
 						await channel.SendMessageAsync("New users will be announced in this channel from now on.");
 					}
+					break;
+				default:
+					await channel.SendMessageAsync("Unknown setting.");
+					break;
+			}
+		}
+
+		[Command("settings", Subcommand = "get", Help = "Get a setting.")]
+		public async Task GetSettingCommand(SocketMessage message, string setting)
+		{
+			if (!(message.Channel is SocketTextChannel channel))
+				return;
+			var guildData = dataStore.GetGuildData(channel.Guild);
+			switch (setting)
+			{
+				case "welcome":
+				case "welcomechannel":
+					var value = guildData.GetWelcomeChannel();
+					if (value == 0)
+					{
+						await channel.SendMessageAsync("No welcome channel set.");
+					}
+					else
+					{
+						await channel.SendMessageAsync($"Current welcome channel: {(channel.Guild.GetChannel(value)?.Name)??"deleted channel"}");
+					}
+					break;
+				default:
+					await channel.SendMessageAsync("Unknown setting.");
 					break;
 			}
 		}
