@@ -105,11 +105,20 @@ namespace BakaCore.Commands
 					command.Insert(0, config.Commands.Tag);
 				}
 				var split = command.ToArray();
-				foreach (var cmd in registeredCommands)
+				if (split[0] == config.Commands.Tag)
 				{
-					if (cmd.Invoke(message, split).GetAwaiter().GetResult())
+					bool success = false;
+					foreach (var cmd in registeredCommands)
 					{
-						break;
+						success = cmd.Invoke(message, split).GetAwaiter().GetResult();
+						if (success)
+						{
+							break;
+						}
+					}
+					if (!success)
+					{
+						message.Channel.SendMessageAsync($"Use {config.Commands.Tag}help to get a list of available commands.").GetAwaiter().GetResult();
 					}
 				}
 			});
@@ -175,8 +184,8 @@ namespace BakaCore.Commands
 			command.Invoke = async (message, split) =>
 			{
 				var parseIdx = 1;
-				if (!description.Commands.Contains(split[parseIdx++])) { return false; }
-				if (description.Subcommand != null && split[parseIdx++] != description.Subcommand) { return false; }
+				if (split.Length <= parseIdx || !description.Commands.Contains(split[parseIdx++])) { return false; }
+				if (description.Subcommand != null && (split.Length <= parseIdx || split[parseIdx++] != description.Subcommand)) { return false; }
 				logger.LogTrace($"Method {meth.Name} in {meth.DeclaringType.FullName} matched command {split[1]}{(description.Subcommand != null ? $" {description.Subcommand}" : "")}.");
 				if (description.RequiredPermissions != Permissions.None && message.Channel is SocketGuildChannel guildChannel && !dataStore.GetGuildData(guildChannel.Guild).UserHasPermission(message.Author, description.RequiredPermissions))
 				{
@@ -203,9 +212,17 @@ namespace BakaCore.Commands
 				{
 					logger.LogTrace($"Failed to match arguments.");
 				}
-				var commandsWithSameName = registeredCommands.Where(c => c.Commands.Contains(split[1])).ToList();
-				if (commandsWithSameName.Count > commandsWithSameName.IndexOf(command) + 1)
-					return false;
+				var commandsWithSameName = registeredCommands.Where(c => c.Commands.Contains(split[1]));
+				if (commandsWithSameName.Count() > 1 && split.Length >= 3)
+				{
+					// subcommands exist and something is specified after command (either arg or subcommand)
+					var sub = commandsWithSameName.FirstOrDefault(c => c.Subcommand == split[2]);
+					if (sub != null && sub != command)
+						// there's a valid subcommand specified, but we're not in it right now
+						return false;
+					if (sub == command)
+						commandsWithSameName = new[] { command };
+				}
 				var text = "Usage:";
 				foreach (var c in commandsWithSameName)
 				{
