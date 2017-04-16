@@ -152,6 +152,12 @@ namespace BakaCore.Commands
 					case ParameterInfo user when (user.ParameterType == typeof(SocketUser)):
 						usage = "<@user>";
 						break;
+					case ParameterInfo role when (role.ParameterType == typeof(SocketRole)):
+						usage = "<@role>";
+						break;
+					case ParameterInfo mention when (mention.ParameterType == typeof(IMentionable)):
+						usage = "(<@user>|<@role>)";
+						break;
 					case ParameterInfo val when (val.ParameterType == typeof(string) || val.ParameterType == typeof(int)):
 						usage = $"<{val.Name}>";
 						break;

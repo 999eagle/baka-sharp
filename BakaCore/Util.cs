@@ -60,5 +60,16 @@ namespace BakaCore
 				});
 			}
 		}
+
+		public static SocketRole GetRole(this DiscordSocketClient client, ulong roleId)
+		{
+			SocketRole role = null;
+			foreach (var guild in client.Guilds)
+			{
+				role = guild.GetRole(roleId);
+				if (role != null) return role;
+			}
+			return null;
+		}
 	}
 }
