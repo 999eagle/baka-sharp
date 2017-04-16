@@ -120,7 +120,10 @@ namespace BakaCore.Commands
 			if (!(mention is SocketEntity<ulong> entity))
 				return;
 			if (!Enum.TryParse<Permissions>(permission, true, out var perm))
+			{
 				await channel.SendMessageAsync("Unknown permission.");
+				return;
+			}
 			var guildData = dataStore.GetGuildData(channel.Guild);
 			guildData.AddPermission(entity, perm);
 			await channel.SendMessageAsync($"Added permission {perm.ToString()} to {mention.Mention}");
@@ -134,7 +137,10 @@ namespace BakaCore.Commands
 			if (!(mention is SocketEntity<ulong> entity))
 				return;
 			if (!Enum.TryParse<Permissions>(permission, true, out var perm))
+			{
 				await channel.SendMessageAsync("Unknown permission.");
+				return;
+			}
 			var guildData = dataStore.GetGuildData(channel.Guild);
 			guildData.RemovePermission(entity, perm);
 			await channel.SendMessageAsync($"Removed permission {perm.ToString()} from {mention.Mention}");
