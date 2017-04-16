@@ -30,8 +30,8 @@ namespace BakaCore.Commands
 			var typeInfo = GetType().GetTypeInfo();
 			return new(MethodInfo, ICommandDescription)[] {
 				(typeInfo.GetMethod(nameof(GetCoinsCommand)), new CommandDescription(config.Currency.CurrencyCommand) { Help = $"Shows how many {config.Currency.CurrencyName} you or another user has." }),
-				(typeInfo.GetMethod(nameof(SpawnCoinsCommand)), new CommandDescription(config.Currency.CurrencyCommand) { Subcommand = "spawn", Help = $"Spawns {config.Currency.CurrencyName} on a user." }),
-				(typeInfo.GetMethod(nameof(DespawnCoinsCommand)), new CommandDescription(config.Currency.CurrencyCommand) { Subcommand = "despawn", Help = $"Despawns {config.Currency.CurrencyName} from a user." }),
+				(typeInfo.GetMethod(nameof(SpawnCoinsCommand)), new CommandDescription(config.Currency.CurrencyCommand) { Subcommand = "spawn", Help = $"Spawns {config.Currency.CurrencyName} on a user.", RequiredPermissions = Permissions.SpawnCoins }),
+				(typeInfo.GetMethod(nameof(DespawnCoinsCommand)), new CommandDescription(config.Currency.CurrencyCommand) { Subcommand = "despawn", Help = $"Despawns {config.Currency.CurrencyName} from a user.", RequiredPermissions = Permissions.DespawnCoins }),
 				(typeInfo.GetMethod(nameof(GiveCoinsCommand)), new CommandDescription(config.Currency.CurrencyCommand) { Subcommand = "give", Help = $"Give {config.Currency.CurrencyName} to someone else." })
 			};
 		}

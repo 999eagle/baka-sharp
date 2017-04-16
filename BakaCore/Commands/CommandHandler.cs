@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 
 using Discord;
 using Discord.WebSocket;
+using BakaCore.Data;
 
 namespace BakaCore.Commands
 {
@@ -18,16 +19,20 @@ namespace BakaCore.Commands
 		private Configuration config;
 		private ILogger logger;
 		private IServiceProvider services;
+		private ArgumentParser parser;
+		private IDataStore dataStore;
 
 		private List<CommandDescription> registeredCommands = new List<CommandDescription>();
 
-		public CommandHandler(ILoggerFactory loggerFactory, DiscordSocketClient client, Configuration config, IServiceProvider services)
+		public CommandHandler(ILoggerFactory loggerFactory, DiscordSocketClient client, Configuration config, IServiceProvider services, ArgumentParser parser, IDataStore dataStore)
 		{
 			logger = loggerFactory.CreateLogger<CommandHandler>();
 			this.client = client;
 			this.config = config;
 			this.client.MessageReceived += MessageReceived;
 			this.services = services;
+			this.parser = parser;
+			this.dataStore = dataStore;
 			RegisterCommands(this);
 		}
 
@@ -78,34 +83,53 @@ namespace BakaCore.Commands
 			logger.LogInformation($"Registered commands in Type {classType.FullName}");
 		}
 
-		private async Task MessageReceived(SocketMessage message)
+		private Task MessageReceived(SocketMessage message)
 		{
-			if (message.Content.Length == 0) return;
-			logger.LogTrace($"Message received: {message.Content}");
-			if (config.Commands.Disabled) return;
-
-			// split message and normalize array for the tag
-			var command = message.Content.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).ToList();
-			if (!config.Commands.Tag.EndsWith(" ") && command[0].StartsWith(config.Commands.Tag))
+			var backgroundStuff = Task.Run(() =>
 			{
-				if (command[0].Length == config.Commands.Tag.Length)
+				if (message.Content.Length == 0) return;
+				logger.LogTrace($"Message received: {message.Content}");
+				if (config.Commands.Disabled) return;
+				// split message and normalize array for the tag
+				var command = message.Content.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).ToList();
+				if (!config.Commands.Tag.EndsWith(" ") && command[0].StartsWith(config.Commands.Tag))
 				{
-					command.RemoveAt(0);
+					if (command[0].Length == config.Commands.Tag.Length)
+					{
+						command.RemoveAt(0);
+					}
+					else
+					{
+						command[0] = command[0].Substring(config.Commands.Tag.Length);
+					}
+					command.Insert(0, config.Commands.Tag);
 				}
-				else
+				var split = command.ToArray();
+				if (split[0] == config.Commands.Tag)
 				{
-					command[0] = command[0].Substring(config.Commands.Tag.Length);
+					bool success = false;
+					foreach (var cmd in registeredCommands)
+					{
+						success = cmd.Invoke(message, split).GetAwaiter().GetResult();
+						if (success)
+						{
+							break;
+						}
+					}
+					if (!success)
+					{
+						message.Channel.SendMessageAsync($"Use {config.Commands.Tag}help to get a list of available commands.").GetAwaiter().GetResult();
+					}
 				}
-				command.Insert(0, config.Commands.Tag);
-			}
-			var split = command.ToArray();
-			foreach (var cmd in registeredCommands)
+			});
+			backgroundStuff.ContinueWith((task) =>
 			{
-				if (await cmd.Invoke(message, split))
+				if (task.Exception != null)
 				{
-					break;
+					logger.LogError(new EventId(), task.Exception, "Unhandled exception throw in MessageReceived handler!");
 				}
-			}
+			});
+			return Task.CompletedTask;
 		}
 
 		[Command("help", Help = "Shows this help")]
@@ -123,7 +147,7 @@ namespace BakaCore.Commands
 		private CommandDescription CreateCommand(object instance, MethodInfo meth, ICommandDescription description)
 		{
 			var command = CommandDescription.CreateCommandDescription(description);
-			var commandArgs = meth.GetParameters().Skip(1).ToList();
+			var commandArgs = meth.GetParameters().Skip(1);
 			
 			command.UsageString = "";
 			foreach (var arg in commandArgs)
@@ -131,8 +155,17 @@ namespace BakaCore.Commands
 				string usage = "";
 				switch (arg)
 				{
+					case ParameterInfo customUsageParam when (customUsageParam.GetCustomAttribute<CustomUsageTextAttribute>() is CustomUsageTextAttribute attribute):
+						usage = attribute.Usage;
+						break;
 					case ParameterInfo user when (user.ParameterType == typeof(SocketUser)):
 						usage = "<@user>";
+						break;
+					case ParameterInfo role when (role.ParameterType == typeof(SocketRole)):
+						usage = "<@role>";
+						break;
+					case ParameterInfo mention when (mention.ParameterType == typeof(IMentionable)):
+						usage = "(<@user>|<@role>)";
 						break;
 					case ParameterInfo val when (val.ParameterType == typeof(string) || val.ParameterType == typeof(int)):
 						usage = $"<{val.Name}>";
@@ -150,60 +183,18 @@ namespace BakaCore.Commands
 
 			command.Invoke = async (message, split) =>
 			{
-				var args = new List<object> { message };
 				var parseIdx = 1;
-				if (!description.Commands.Contains(split[parseIdx++])) { return false; }
-				if (description.Subcommand != null && split[parseIdx++] != description.Subcommand) { return false; }
+				if (split.Length <= parseIdx || !description.Commands.Contains(split[parseIdx++])) { return false; }
+				if (description.Subcommand != null && (split.Length <= parseIdx || split[parseIdx++] != description.Subcommand)) { return false; }
 				logger.LogTrace($"Method {meth.Name} in {meth.DeclaringType.FullName} matched command {split[1]}{(description.Subcommand != null ? $" {description.Subcommand}" : "")}.");
-				var argsMatch = true;
-				for (int i = 0; i < commandArgs.Count; i++)
+				if (description.RequiredPermissions != Permissions.None && message.Channel is SocketGuildChannel guildChannel && !dataStore.GetGuildData(guildChannel.Guild).UserHasPermission(message.Author, description.RequiredPermissions))
 				{
-					var optional = commandArgs[i].GetCustomAttribute<OptionalAttribute>() != null;
-					var parseText = (i + parseIdx >= split.Length) ? null : split[i + parseIdx];
-					if (!optional && parseText == null)
-					{
-						argsMatch = false;
-						break;
-					}
-					switch (commandArgs[i])
-					{
-						case ParameterInfo arg when (arg.ParameterType == typeof(SocketUser)):
-							if (parseText == null)
-							{
-								args.Add(null);
-							}
-							else if (MentionUtils.TryParseUser(parseText, out var userId))
-							{
-								args.Add(client.GetUser(userId));
-							}
-							else
-							{
-								argsMatch = false;
-								break;
-							}
-							break;
-						case ParameterInfo arg when (arg.ParameterType == typeof(string)):
-							args.Add(parseText);
-							break;
-						case ParameterInfo arg when (arg.ParameterType == typeof(int)):
-							if (Int32.TryParse(parseText, out int val))
-							{
-								args.Add(val);
-							}
-							else
-							{
-								argsMatch = false;
-								break;
-							}
-							break;
-						default:
-							logger.LogWarning($"Unknown parameter type {commandArgs[i].ParameterType.FullName} for parameter {commandArgs[i].Name} in command method {meth.Name} in {meth.DeclaringType.FullName} encountered while parsing command parameters.");
-							break;
-					}
+					await message.Channel.SendMessageAsync("You don't have the necessary permissions for this command.");
+					return true;
 				}
-				if (argsMatch)
+				if (parser.TryParseArguments(commandArgs, split.Skip(parseIdx), out var parsed))
 				{
-					var task = meth.Invoke(instance, args.ToArray());
+					var task = meth.Invoke(instance, new object[] { message }.Concat(parsed).ToArray());
 					if (task is Task<bool> boolTask)
 					{
 						if (await boolTask)
@@ -221,9 +212,17 @@ namespace BakaCore.Commands
 				{
 					logger.LogTrace($"Failed to match arguments.");
 				}
-				var commandsWithSameName = registeredCommands.Where(c => c.Commands.Contains(split[1])).ToList();
-				if (commandsWithSameName.Count > commandsWithSameName.IndexOf(command) + 1)
-					return false;
+				var commandsWithSameName = registeredCommands.Where(c => c.Commands.Contains(split[1]));
+				if (commandsWithSameName.Count() > 1 && split.Length >= 3)
+				{
+					// subcommands exist and something is specified after command (either arg or subcommand)
+					var sub = commandsWithSameName.FirstOrDefault(c => c.Subcommand == split[2]);
+					if (sub != null && sub != command)
+						// there's a valid subcommand specified, but we're not in it right now
+						return false;
+					if (sub == command)
+						commandsWithSameName = new[] { command };
+				}
 				var text = "Usage:";
 				foreach (var c in commandsWithSameName)
 				{

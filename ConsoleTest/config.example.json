@@ -3,7 +3,51 @@
 		"LogLevel": "Debug"
 	},
 	"Commands": {
-		"Tag": "+"
+		"Tag": "+",
+		"Slots": {
+			"Count": 5,
+			"Items": [ "green_apple", "apple", "pear", "tangerine", "lemon", "banana", "watermelon", "grapes", "strawberry", "melon", "cherries", "peach", "pineapple", "hot_pepper", "hamburger", "fries", "hotdog", "pizza", "taco", "burrito", "ramen", "sushi", "bento", "rice_ball", "birthday", "pudding", "popcorn", "doughnut", "cookie", "mushroom", "zap" ],
+			"Bonuses": {
+				"mushroom": "Mario-Bonus",
+				"cherries": "PacMan-Bonus"
+			},
+			"Wins": [
+				{
+					"Payout": 0,
+					"Text": "You won nothing."
+				},
+				{
+					"Payout": 2,
+					"Text": "You got a pair!",
+					"Combination": [ 2 ]
+				},
+				{
+					"Payout": 4,
+					"Text": "You got a triple!",
+					"Combination": [ 3 ]
+				},
+				{
+					"Payout": 6,
+					"Text": "You got two pairs! You're really lucky!",
+					"Combination": [ 2, 2 ]
+				},
+				{
+					"Payout": 6,
+					"Text": "You got four of a kind! You're really lucky!",
+					"Combination": [ 4 ]
+				},
+				{
+					"Payout": 12,
+					"Text": "You got a full house! Are you a hacker?",
+					"Combination": [ 2, 3 ]
+				},
+				{
+					"Payout": 12,
+					"Text": "You got five of a kind! Are you a hacker?",
+					"Combination": [ 5 ]
+				}
+			]
+		}
 	},
 	"API": {
 		"DiscordLoginToken": "<your token here>",

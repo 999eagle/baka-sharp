@@ -4,6 +4,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 using Discord.WebSocket;
+using BakaCore.Data;
 
 namespace BakaCore.Commands
 {
@@ -12,6 +13,7 @@ namespace BakaCore.Commands
 		string[] Commands { get; }
 		string Subcommand { get; }
 		string Help { get; }
+		Permissions RequiredPermissions { get; }
 	}
 
 	class CommandDescription : ICommandDescription
@@ -19,6 +21,7 @@ namespace BakaCore.Commands
 		public string[] Commands { get; }
 		public string Subcommand { get; set; }
 		public string Help { get; set; }
+		public Permissions RequiredPermissions { get; set; }
 
 		public string UsageString { get; set; }
 		public Func<SocketMessage, string[], Task<bool>> Invoke { get; set; }
@@ -35,7 +38,8 @@ namespace BakaCore.Commands
 			return new CommandDescription(original.Commands)
 			{
 				Help = original.Help,
-				Subcommand = original.Subcommand
+				Subcommand = original.Subcommand,
+				RequiredPermissions = original.RequiredPermissions,
 			};
 		}
 
@@ -48,6 +52,7 @@ namespace BakaCore.Commands
 		public string[] Commands { get; }
 		public string Subcommand { get; set; }
 		public string Help { get; set; }
+		public Permissions RequiredPermissions { get; set; }
 
 		public CommandAttribute(params string[] commands)
 		{

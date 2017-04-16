@@ -1,6 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+
+using Discord.WebSocket;
 
 namespace BakaCore
 {
@@ -29,6 +33,43 @@ namespace BakaCore
 				m += $"Exception {exception.GetType().Name} thrown in {exception.Source}:\n{exception.Message}";
 			}
 			return m;
+		}
+
+		public static async Task<SocketMessage> WaitForMessage(this SocketChannel channel, TimeSpan timeout, Func<SocketMessage, bool> filter)
+		{
+			var cancellationTokenSource = new CancellationTokenSource();
+			SocketMessage matchingMessage = null;
+			channel.Discord.MessageReceived += MessageReceived;
+			try
+			{
+				await Task.Delay(timeout, cancellationTokenSource.Token);
+			}
+			catch (TaskCanceledException) { }
+			channel.Discord.MessageReceived -= MessageReceived;
+			return matchingMessage;
+
+			Task MessageReceived(SocketMessage message)
+			{
+				return Task.Run(() =>
+				{
+					if (filter(message))
+					{
+						matchingMessage = message;
+						cancellationTokenSource.Cancel();
+					}
+				});
+			}
+		}
+
+		public static SocketRole GetRole(this DiscordSocketClient client, ulong roleId)
+		{
+			SocketRole role = null;
+			foreach (var guild in client.Guilds)
+			{
+				role = guild.GetRole(roleId);
+				if (role != null) return role;
+			}
+			return null;
 		}
 	}
 }

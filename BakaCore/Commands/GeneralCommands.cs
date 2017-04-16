@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 
 using Discord;
 using Discord.WebSocket;
@@ -10,6 +11,15 @@ namespace BakaCore.Commands
 {
 	class GeneralCommands
 	{
+		private Random rand;
+		private ImageService imageService;
+
+		public GeneralCommands(IServiceProvider services)
+		{
+			rand = services.GetRequiredService<Random>();
+			imageService = services.GetRequiredService<ImageService>();
+		}
+
 		[Command("mods", Help = "Shows the mods on the server.")]
 		public async Task ModsCommand(SocketMessage message)
 		{
@@ -57,6 +67,60 @@ namespace BakaCore.Commands
 		public async Task PingCommand(SocketMessage message)
 		{
 			await message.Channel.SendMessageAsync($"Pong\nRTT: {message.Discord.Latency}ms");
+		}
+
+		[Command("roll", Help = "Generate a random number between 1 and <number> (both inclusive).")]
+		public async Task<bool> RollCommand(SocketMessage message, [CustomUsageText("D<number>")]string argument)
+		{
+			if (argument.StartsWith("D", StringComparison.OrdinalIgnoreCase) && Int32.TryParse(argument.Substring(1), out int number))
+			{
+				if (number <= 1)
+					await message.Channel.SendMessageAsync("Try a number greater than 1, baka!");
+				else
+					await message.Channel.SendMessageAsync($"Rolling a {number} sided :game_die:...\nRolled a {rand.Next(number) + 1}.");
+				return true;
+			}
+			else
+			{
+				return false;
+			}
+		}
+
+		[Command("choose", Help = "Choose one option from a list of choices.")]
+		public async Task ChooseCommand(SocketMessage message, [CustomUsageText("<choice> | <choice> | ...")][ListSeparator("|")]string[] arguments)
+		{
+			if (arguments.Length == 1)
+			{
+				await message.Channel.SendMessageAsync("I have to choose from a single option... That's difficult...");
+				await Task.Delay(TimeSpan.FromSeconds(10));
+				await message.Channel.SendMessageAsync($"I've chosen! I pick **{arguments[0]}**.");
+			}
+			else
+			{
+				int idx = rand.Next(arguments.Length);
+				await message.Channel.SendMessageAsync($"I pick **{arguments[idx]}**.");
+			}
+		}
+
+		[Command("poke", Help = "Poke someone.")]
+		public async Task PokeCommand(SocketMessage message, [Optional]SocketUser user)
+		{
+			user = user ?? message.Author;
+			await message.Channel.SendMessageAsync($"*Baka-chan pokes {user.Mention}*", false,
+				imageService.GetImageEmbed("poke"));
+		}
+
+		[Command("slap", Help = "Slap someone.")]
+		public async Task SlapCommand(SocketMessage message, [Optional]SocketUser user)
+		{
+			user = user ?? message.Author;
+			await message.Channel.SendMessageAsync($"*Baka-chan slaps {user.Mention}*", false, imageService.GetImageEmbed("slap"));
+		}
+
+		[Command("f", Help = "Pay respects.")]
+		public async Task FCommand(SocketMessage message)
+		{
+			await message.Channel.SendMessageAsync("", false, imageService.GetImageEmbed("respect"));
 		}
 	}
 }

@@ -20,6 +20,22 @@ namespace BakaCore
 		{
 			public bool Disabled { get; set; }
 			public string Tag { get; set; }
+			public _Slots Slots { get; set; }
+			public class _Slots
+			{
+				public int Count { get; set; }
+				public string[] Items { get; set; }
+				public IDictionary<string, string> Bonuses { get; set; }
+				internal IDictionary<int, string> InternalBonuses { get; set; }
+				public _Win[] Wins { get; set; }
+
+				public class _Win
+				{
+					public int Payout { get; set; }
+					public string Text { get; set; }
+					public int[] Combination { get; set; }
+				}
+			}
 		}
 		public class API
 		{
