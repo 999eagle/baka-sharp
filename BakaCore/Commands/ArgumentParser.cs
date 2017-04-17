@@ -99,7 +99,7 @@ namespace BakaCore.Commands
 					IEnumerable<string> items;
 					if (separatorAttr != null)
 					{
-						items = String.Join(" ", inputs).Split(new[] { separatorAttr.Separator }, StringSplitOptions.None).Select(s => s.Trim());
+						items = String.Join(" ", inputs).Split(new[] { separatorAttr.Separator }, StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim());
 					}
 					else
 					{
