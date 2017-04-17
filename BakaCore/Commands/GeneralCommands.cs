@@ -59,7 +59,10 @@ namespace BakaCore.Commands
 		[Command("info", Help = "Shows information about a user.")]
 		public async Task InfoCommand(SocketMessage message, SocketUser user)
 		{
-			var text = $"Information about {user.Mention}\n**Username:** {user.Username}#{user.Discriminator}\n**Created:** {user.CreatedAt.ToString("yyyy-MM-dd HH:mm")}\n**Avatar URL:** {user.GetAvatarUrl()}";
+			var text = $"Information about {user.Mention}\n**Username:** {user.Username}#{user.Discriminator}\n**Created:** {user.CreatedAt.ToString("yyyy-MM-dd HH:mm")}";
+			string avatarUrl = user.GetAvatarUrl();
+			if (!String.IsNullOrEmpty(avatarUrl))
+				text += $"\n**Avatar URL:** {avatarUrl}";
 			await message.Channel.SendMessageAsync(text);
 		}
 
