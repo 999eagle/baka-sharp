@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 
 using Discord.WebSocket;
 using SteamWebAPI2.Interfaces;
+using SteamWebAPI2.Exceptions;
 
 namespace BakaCore.Commands
 {
@@ -27,10 +28,23 @@ namespace BakaCore.Commands
 		{
 			if (steamID.Length != 17 || !UInt64.TryParse(steamID, out ulong userID))
 			{
-				userID = (await steamUser.ResolveVanityUrlAsync(steamID)).Data;
-				logger.LogDebug($"SteamID {steamID} resolved to UserID {userID}.");
+				try
+				{
+					userID = (await steamUser.ResolveVanityUrlAsync(steamID)).Data;
+					logger.LogDebug($"SteamID {steamID} resolved to UserID {userID}.");
+				}
+				catch (VanityUrlNotResolvedException)
+				{
+					await message.Channel.SendMessageAsync("No Steam account matching that ID found.");
+					return;
+				}
 			}
-			var summary = (await steamUser.GetPlayerSummaryAsync(userID)).Data;
+			var summary = (await steamUser.GetPlayerSummaryAsync(userID))?.Data;
+			if (summary == null)
+			{
+				await message.Channel.SendMessageAsync("No Steam account matching that ID found.");
+				return;
+			}
 			var text = $"**Profile Name:** {summary.Nickname}\n**Steam ID:** {summary.SteamId}\n**URL:** {summary.ProfileUrl}\n**Status:** {summary.UserStatus}\n**Calculator:** http://steamdb.info/calculator/{summary.SteamId}/";
 			await message.Channel.SendMessageAsync(text);
 		}
