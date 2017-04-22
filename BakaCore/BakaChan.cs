@@ -62,14 +62,14 @@ namespace BakaCore
 			}
 		}
 
-		public async Task Run()
+		public Task Run()
 		{
 			logger.LogInformation($"Starting bot.");
 			instanceServiceScope = services.CreateScope();
 			Initialize();
 			cancellationTokenSource = new CancellationTokenSource();
-			await client.LoginAsync(TokenType.Bot, config.API.DiscordLoginToken);
-			await client.StartAsync();
+			client.LoginAsync(TokenType.Bot, config.API.DiscordLoginToken).Wait();
+			client.StartAsync().Wait();
 
 			logger.LogDebug("Registering commands.");
 			var commandHandler = instanceServiceScope.ServiceProvider.GetRequiredService<Commands.CommandHandler>();
@@ -79,20 +79,24 @@ namespace BakaCore
 			commandHandler.RegisterCommands<Commands.GameCommands>();
 			commandHandler.RegisterCommands<Commands.SettingsCommands>();
 			var greetings = instanceServiceScope.ServiceProvider.GetRequiredService<Greeting>();
-			try
+			return RunAsync();
+			async Task RunAsync()
 			{
-				// Wait until the token is cancelled
-				await Task.Delay(-1, cancellationTokenSource.Token);
+				try
+				{
+					// Wait until the token is cancelled
+					await Task.Delay(-1, cancellationTokenSource.Token);
+				}
+				catch (TaskCanceledException)
+				{
+					logger.LogInformation($"Stopping bot.");
+				}
+				await client.SetStatusAsync(UserStatus.Offline);
+				await client.StopAsync();
+				await client.LogoutAsync();
+				instanceServiceScope.Dispose();
+				instanceServiceScope = null;
 			}
-			catch (TaskCanceledException)
-			{
-				logger.LogInformation($"Stopping bot.");
-			}
-			await client.SetStatusAsync(UserStatus.Offline);
-			await client.StopAsync();
-			await client.LogoutAsync();
-			instanceServiceScope.Dispose();
-			instanceServiceScope = null;
 		}
 
 		public void Stop()
