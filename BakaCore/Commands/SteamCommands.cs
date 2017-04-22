@@ -18,8 +18,8 @@ namespace BakaCore.Commands
 		ILogger logger;
 		public SteamCommands(IServiceProvider services)
 		{
-			steamUser = services.GetRequiredService<ISteamUser>();
-			steamUserStats = services.GetRequiredService<ISteamUserStats>();
+			steamUser = new SteamUser(config.API.SteamWebAPIKey);
+			steamUserStats = new SteamUserStats(config.API.SteamWebAPIKey);
 			logger = services.GetRequiredService<ILoggerFactory>().CreateLogger<SteamCommands>();
 		}
 
