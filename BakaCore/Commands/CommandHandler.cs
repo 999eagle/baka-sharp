@@ -41,7 +41,7 @@ namespace BakaCore.Commands
 			var classType = typeof(T).GetTypeInfo();
 			if (instance == null)
 			{
-				foreach (var ctor in classType.GetConstructors())
+				foreach (var ctor in classType.DeclaredConstructors)
 				{
 					var parameters = ctor.GetParameters();
 					if (parameters.Length == 1 && parameters[0].ParameterType == typeof(IServiceProvider))
@@ -63,13 +63,13 @@ namespace BakaCore.Commands
 					return;
 				}
 			}
-			foreach (var meth in classType.GetMethods().Where(mi => mi.GetCustomAttribute<CommandAttribute>() != null))
+			foreach (var meth in classType.DeclaredMethods.Where(mi => mi.GetCustomAttribute<CommandAttribute>() != null))
 			{
 				var attr = meth.GetCustomAttribute<CommandAttribute>();
 				registeredCommands.Add(CreateCommand(instance, meth, attr));
 				logger.LogTrace($"Registered command method {meth.Name} in {classType.FullName} using reflection.");
 			}
-			var customCommandMethod = classType.GetMethod("GetCustomCommands");
+			var customCommandMethod = classType.GetDeclaredMethod("GetCustomCommands");
 			if (customCommandMethod != null)
 			{
 				logger.LogTrace($"Found custom commands in {classType.FullName}.");
