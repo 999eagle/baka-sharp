@@ -23,7 +23,7 @@ namespace BakaCore.Commands
 			logger = services.GetRequiredService<ILoggerFactory>().CreateLogger<SettingsCommands>();
 		}
 
-		[Command("settings", Subcommand = "set", Help = "Change a setting.", RequiredPermissions = Permissions.Settings)]
+		[Command("settings", Subcommand = "set", Help = "Change a setting.", RequiredPermissions = Permissions.Settings, IsGuildOnly = true)]
 		public async Task SetSettingCommand(SocketMessage message, string setting, [CustomUsageText("<value>")][Optional]string[] args)
 		{
 			if (!(message.Channel is SocketTextChannel channel))
@@ -51,7 +51,7 @@ namespace BakaCore.Commands
 			}
 		}
 
-		[Command("settings", Subcommand = "get", Help = "Get a setting.", RequiredPermissions = Permissions.Settings)]
+		[Command("settings", Subcommand = "get", Help = "Get a setting.", RequiredPermissions = Permissions.Settings, IsGuildOnly = true)]
 		public async Task GetSettingCommand(SocketMessage message, string setting)
 		{
 			if (!(message.Channel is SocketTextChannel channel))
@@ -77,7 +77,7 @@ namespace BakaCore.Commands
 			}
 		}
 
-		[Command("perms", Help = "Displays permissions.", RequiredPermissions = Permissions.DisplayPermissions)]
+		[Command("perms", Help = "Displays permissions.", RequiredPermissions = Permissions.DisplayPermissions, IsGuildOnly = true)]
 		public async Task DisplayPermissionsCommand(SocketMessage message, IMentionable mention)
 		{
 			if (!(message.Channel is SocketTextChannel channel))
@@ -112,7 +112,7 @@ namespace BakaCore.Commands
 			await channel.SendMessageAsync($"{mention.Mention} has " + text);
 		}
 
-		[Command("perms", Subcommand = "give", Help = "Gives permissions.", RequiredPermissions = Permissions.EditPermissions)]
+		[Command("perms", Subcommand = "give", Help = "Gives permissions.", RequiredPermissions = Permissions.EditPermissions, IsGuildOnly = true)]
 		public async Task GivePermissionCommand(SocketMessage message, IMentionable mention, string permission)
 		{
 			if (!(message.Channel is SocketTextChannel channel))
@@ -129,7 +129,7 @@ namespace BakaCore.Commands
 			await channel.SendMessageAsync($"Added permission {perm.ToString()} to {mention.Mention}");
 		}
 
-		[Command("perms", Subcommand = "remove", Help = "Removes permissions.", RequiredPermissions = Permissions.EditPermissions)]
+		[Command("perms", Subcommand = "remove", Help = "Removes permissions.", RequiredPermissions = Permissions.EditPermissions, IsGuildOnly = true)]
 		public async Task RemovePermissionCommand(SocketMessage message, IMentionable mention, string permission)
 		{
 			if (!(message.Channel is SocketTextChannel channel))

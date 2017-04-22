@@ -14,6 +14,7 @@ namespace BakaCore.Commands
 		string Subcommand { get; }
 		string Help { get; }
 		Permissions RequiredPermissions { get; }
+		bool IsGuildOnly { get; }
 	}
 
 	class CommandDescription : ICommandDescription
@@ -22,6 +23,7 @@ namespace BakaCore.Commands
 		public string Subcommand { get; set; }
 		public string Help { get; set; }
 		public Permissions RequiredPermissions { get; set; }
+		public bool IsGuildOnly { get; set; }
 
 		public string UsageString { get; set; }
 		public Func<SocketMessage, string[], Task<bool>> Invoke { get; set; }
@@ -40,6 +42,7 @@ namespace BakaCore.Commands
 				Help = original.Help,
 				Subcommand = original.Subcommand,
 				RequiredPermissions = original.RequiredPermissions,
+				IsGuildOnly = original.IsGuildOnly
 			};
 		}
 
@@ -53,6 +56,7 @@ namespace BakaCore.Commands
 		public string Subcommand { get; set; }
 		public string Help { get; set; }
 		public Permissions RequiredPermissions { get; set; }
+		public bool IsGuildOnly { get; set; }
 
 		public CommandAttribute(params string[] commands)
 		{
