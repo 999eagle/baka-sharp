@@ -187,6 +187,11 @@ namespace BakaCore.Commands
 				if (split.Length <= parseIdx || !description.Commands.Contains(split[parseIdx++])) { return false; }
 				if (description.Subcommand != null && (split.Length <= parseIdx || split[parseIdx++] != description.Subcommand)) { return false; }
 				logger.LogTrace($"Method {meth.Name} in {meth.DeclaringType.FullName} matched command {split[1]}{(description.Subcommand != null ? $" {description.Subcommand}" : "")}.");
+				if (description.IsGuildOnly && !(message.Channel is SocketGuildChannel))
+				{
+					await message.Channel.SendMessageAsync("This command may not be used in a private chat.");
+					return true;
+				}
 				if (description.RequiredPermissions != Permissions.None && message.Channel is SocketGuildChannel guildChannel && !dataStore.GetGuildData(guildChannel.Guild).UserHasPermission(message.Author, description.RequiredPermissions))
 				{
 					await message.Channel.SendMessageAsync("You don't have the necessary permissions for this command.");
