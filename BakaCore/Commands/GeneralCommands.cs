@@ -21,7 +21,7 @@ namespace BakaCore.Commands
 			imageService = services.GetRequiredService<ImageService>();
 		}
 
-		[Command("mods", Help = "Shows the mods on the server.", IsGuildOnly = true)]
+		[Command("mods", Help = "Shows the mods on the server.", Scope = CommandScope.Guild)]
 		public async Task ModsCommand(SocketMessage message)
 		{
 			if (message.Channel is SocketTextChannel channel)
