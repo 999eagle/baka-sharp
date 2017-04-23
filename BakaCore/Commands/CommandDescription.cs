@@ -14,7 +14,7 @@ namespace BakaCore.Commands
 		string Subcommand { get; }
 		string Help { get; }
 		Permissions RequiredPermissions { get; }
-		bool IsGuildOnly { get; }
+		CommandScope Scope { get; }
 	}
 
 	class CommandDescription : ICommandDescription
@@ -23,7 +23,7 @@ namespace BakaCore.Commands
 		public string Subcommand { get; set; }
 		public string Help { get; set; }
 		public Permissions RequiredPermissions { get; set; }
-		public bool IsGuildOnly { get; set; }
+		public CommandScope Scope { get; set; } = CommandScope.All;
 
 		public string UsageString { get; set; }
 		public Func<SocketMessage, string[], Task<bool>> Invoke { get; set; }
@@ -42,7 +42,7 @@ namespace BakaCore.Commands
 				Help = original.Help,
 				Subcommand = original.Subcommand,
 				RequiredPermissions = original.RequiredPermissions,
-				IsGuildOnly = original.IsGuildOnly
+				Scope = original.Scope,
 			};
 		}
 
@@ -56,11 +56,27 @@ namespace BakaCore.Commands
 		public string Subcommand { get; set; }
 		public string Help { get; set; }
 		public Permissions RequiredPermissions { get; set; }
-		public bool IsGuildOnly { get; set; }
+		public CommandScope Scope { get; set; } = CommandScope.All;
 
 		public CommandAttribute(params string[] commands)
 		{
 			Commands = commands;
 		}
+	}
+
+	[Flags]
+	enum CommandScope
+	{
+		None = 0x0,
+
+		DM = 0x01,
+		Group = 0x02,
+		Guild = 0x04,
+
+		NonDM = Group | Guild,
+		NonGroup = DM | Guild,
+		NonGuild = DM | Group,
+
+		All = DM | Group | Guild,
 	}
 }

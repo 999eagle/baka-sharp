@@ -35,7 +35,7 @@ namespace BakaCore.Commands
 			config.Commands.Slots.InternalBonuses = config.Commands.Slots.Bonuses.ToDictionary(kv => itemIndices[kv.Key], kv => kv.Value);
 		}
 
-		[Command("slots", Help = "Play a round of slots.", IsGuildOnly = true)]
+		[Command("slots", Help = "Play a round of slots.", Scope = CommandScope.Guild)]
 		public async Task SlotsCommand(SocketMessage message, int bet)
 		{
 			if (message.Channel is SocketTextChannel channel)

@@ -29,10 +29,10 @@ namespace BakaCore.Commands
 		{
 			var typeInfo = GetType().GetTypeInfo();
 			return new(MethodInfo, ICommandDescription)[] {
-				(typeInfo.GetDeclaredMethod(nameof(GetCoinsCommand)), new CommandDescription(config.Currency.CurrencyCommand) { Help = $"Shows how many {config.Currency.CurrencyName} you or another user has.", IsGuildOnly = true }),
-				(typeInfo.GetDeclaredMethod(nameof(SpawnCoinsCommand)), new CommandDescription(config.Currency.CurrencyCommand) { Subcommand = "spawn", Help = $"Spawns {config.Currency.CurrencyName} on a user.", RequiredPermissions = Permissions.SpawnCoins, IsGuildOnly = true }),
-				(typeInfo.GetDeclaredMethod(nameof(DespawnCoinsCommand)), new CommandDescription(config.Currency.CurrencyCommand) { Subcommand = "despawn", Help = $"Despawns {config.Currency.CurrencyName} from a user.", RequiredPermissions = Permissions.DespawnCoins, IsGuildOnly = true }),
-				(typeInfo.GetDeclaredMethod(nameof(GiveCoinsCommand)), new CommandDescription(config.Currency.CurrencyCommand) { Subcommand = "give", Help = $"Give {config.Currency.CurrencyName} to someone else.", IsGuildOnly = true })
+				(typeInfo.GetDeclaredMethod(nameof(GetCoinsCommand)), new CommandDescription(config.Currency.CurrencyCommand) { Help = $"Shows how many {config.Currency.CurrencyName} you or another user has.", Scope = CommandScope.Guild }),
+				(typeInfo.GetDeclaredMethod(nameof(SpawnCoinsCommand)), new CommandDescription(config.Currency.CurrencyCommand) { Subcommand = "spawn", Help = $"Spawns {config.Currency.CurrencyName} on a user.", RequiredPermissions = Permissions.SpawnCoins, Scope = CommandScope.Guild }),
+				(typeInfo.GetDeclaredMethod(nameof(DespawnCoinsCommand)), new CommandDescription(config.Currency.CurrencyCommand) { Subcommand = "despawn", Help = $"Despawns {config.Currency.CurrencyName} from a user.", RequiredPermissions = Permissions.DespawnCoins, Scope = CommandScope.Guild }),
+				(typeInfo.GetDeclaredMethod(nameof(GiveCoinsCommand)), new CommandDescription(config.Currency.CurrencyCommand) { Subcommand = "give", Help = $"Give {config.Currency.CurrencyName} to someone else.", Scope = CommandScope.Guild })
 			};
 		}
 		
