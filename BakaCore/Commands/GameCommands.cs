@@ -153,7 +153,7 @@ namespace BakaCore.Commands
 				await channel.SendMessageAsync("You are already in a game of rock-paper-scissors.");
 				return;
 			}
-			if (runningGames.All(g => g.Player1.Id == user.Id || g.Player2.Id == user.Id))
+			if (runningGames.Any(g => g.Player1.Id == user.Id || g.Player2.Id == user.Id))
 			{
 				await channel.SendMessageAsync("Your opponent is already in a game of rock-paper-scissors.");
 				return;
@@ -177,7 +177,7 @@ namespace BakaCore.Commands
 			}
 		}
 
-		[Command("rps", Subcommand = "a", Scope = CommandScope.Group)]
+		[Command("rps", Subcommand = "a", Scope = CommandScope.Guild)]
 		public async Task RpsAcceptCommand(SocketMessage message)
 		{
 			if (!(message.Channel is SocketTextChannel channel)) return;
