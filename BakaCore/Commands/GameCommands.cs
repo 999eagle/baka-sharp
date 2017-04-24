@@ -170,6 +170,8 @@ namespace BakaCore.Commands
 				await Task.Delay(TimeSpan.FromSeconds(30), game.TimeoutCancellation.Token);
 				await channel.SendMessageAsync($"{user.Mention} didn't accept {message.Author.Mention}'s challenge in time.");
 				runningGames.Remove(game);
+				guildData.SetCoins(message.Author, guildData.GetCoins(message.Author) + bet);
+				guildData.SetCoins(user, guildData.GetCoins(user) + bet);
 				return;
 			}
 			catch (TaskCanceledException)
