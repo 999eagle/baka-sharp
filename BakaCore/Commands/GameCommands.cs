@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -103,6 +104,101 @@ namespace BakaCore.Commands
 				logger.LogTrace($"[Slots] Set coins of user {message.Author.Id} in guild {channel.Guild.Id} to {coins}.");
 				await channel.SendMessageAsync(text);
 			}
+		}
+
+		class RpsGame
+		{
+			public SocketUser Player1 { get; set; }
+			public SocketUser Player2 { get; set; }
+			public SocketTextChannel Channel { get; set; }
+			public CancellationTokenSource TimeoutCancellation { get; } = new CancellationTokenSource();
+			public RpsGameStatus Status { get; set; } = RpsGameStatus.New;
+		}
+		enum RpsGameStatus
+		{
+			New,
+			Player2Accepted,
+			ChoicesReceived
+		}
+		IList<RpsGame> runningGames = new List<RpsGame>();
+
+		[Command("rps", Help = "Challenge a user to a game of rock-paper-scissors.", Scope = CommandScope.Guild)]
+		public async Task RpsCommand(SocketMessage message, SocketUser user, int bet, [Optional]string rpsls)
+		{
+			if (!(message.Channel is SocketTextChannel channel)) return;
+			if (message.Author.Id == user.Id)
+			{
+				await channel.SendMessageAsync("You can't challenge yourself, baka!");
+				return;
+			}
+			if (bet <= 0)
+			{
+				await channel.SendMessageAsync($"You have to bet more than 0 {config.Currency.CurrencyName}.");
+				return;
+			}
+			var guildData = dataStore.GetGuildData(channel.Guild);
+			int player1Coins, player2Coins;
+			if ((player1Coins = guildData.GetCoins(message.Author)) < bet)
+			{
+				await channel.SendMessageAsync($"You don't have enough {config.Currency.CurrencyName}.");
+				return;
+			}
+			if ((player2Coins = guildData.GetCoins(user)) < bet)
+			{
+				await channel.SendMessageAsync($"Your opponent doesn't have enough {config.Currency.CurrencyName}.");
+				return;
+			}
+			if (runningGames.Any(g => g.Player1.Id == message.Author.Id || g.Player2.Id == message.Author.Id))
+			{
+				await channel.SendMessageAsync("You are already in a game of rock-paper-scissors.");
+				return;
+			}
+			if (runningGames.All(g => g.Player1.Id == user.Id || g.Player2.Id == user.Id))
+			{
+				await channel.SendMessageAsync("Your opponent is already in a game of rock-paper-scissors.");
+				return;
+			}
+			// remove bet instantly to ensure that no other command (like slots, give or despawn) removes necessary coins for bet
+			guildData.SetCoins(message.Author, player1Coins - bet);
+			guildData.SetCoins(user, player2Coins - bet);
+			var isRpsls = (rpsls == null) ? false : (rpsls == "rpsls");
+			var game = new RpsGame { Player1 = message.Author, Player2 = user, Channel = channel };
+			runningGames.Add(game);
+			await channel.SendMessageAsync($"{user.Mention}, you have been challenged to a game of rock-paper-scissors. You can accept in the next 30 seconds with `{config.Commands.Tag}rps a`");
+			try
+			{
+				await Task.Delay(TimeSpan.FromSeconds(30), game.TimeoutCancellation.Token);
+				await channel.SendMessageAsync($"{user.Mention} didn't accept {message.Author.Mention}'s challenge in time.");
+				runningGames.Remove(game);
+				return;
+			}
+			catch (TaskCanceledException)
+			{
+			}
+		}
+
+		[Command("rps", Subcommand = "a", Scope = CommandScope.Group)]
+		public async Task RpsAcceptCommand(SocketMessage message)
+		{
+			if (!(message.Channel is SocketTextChannel channel)) return;
+			var game = runningGames.FirstOrDefault(g => (g.Player1.Id == message.Author.Id || g.Player2.Id == message.Author.Id) && g.Channel.Id == channel.Id);
+			if (game == null)
+			{
+				await channel.SendMessageAsync($"You haven't been challenged to a game of rock-paper-scissors. Challenge someone using `{config.Commands.Tag}rps`!");
+				return;
+			}
+			if (game.Player1.Id == message.Author.Id)
+			{
+				await channel.SendMessageAsync("You've started this game yourself, no need to accept.");
+				return;
+			}
+			if (game.Status != RpsGameStatus.New)
+			{
+				await channel.SendMessageAsync("This game is already running.");
+				return;
+			}
+			game.Status = RpsGameStatus.Player2Accepted;
+			await channel.SendMessageAsync("Accepted.");
 		}
 	}
 }
