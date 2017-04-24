@@ -137,13 +137,12 @@ namespace BakaCore.Commands
 				return;
 			}
 			var guildData = dataStore.GetGuildData(channel.Guild);
-			int player1Coins, player2Coins;
-			if ((player1Coins = guildData.GetCoins(message.Author)) < bet)
+			if (guildData.GetCoins(message.Author) < bet)
 			{
 				await channel.SendMessageAsync($"You don't have enough {config.Currency.CurrencyName}.");
 				return;
 			}
-			if ((player2Coins = guildData.GetCoins(user)) < bet)
+			if (guildData.GetCoins(user) < bet)
 			{
 				await channel.SendMessageAsync($"Your opponent doesn't have enough {config.Currency.CurrencyName}.");
 				return;
@@ -158,9 +157,6 @@ namespace BakaCore.Commands
 				await channel.SendMessageAsync("Your opponent is already in a game of rock-paper-scissors.");
 				return;
 			}
-			// remove bet instantly to ensure that no other command (like slots, give or despawn) removes necessary coins for bet
-			guildData.SetCoins(message.Author, player1Coins - bet);
-			guildData.SetCoins(user, player2Coins - bet);
 			var isRpsls = (rpsls == null) ? false : (rpsls == "rpsls");
 			var game = new RpsGame { Player1 = message.Author, Player2 = user, Channel = channel };
 			runningGames.Add(game);
@@ -169,13 +165,27 @@ namespace BakaCore.Commands
 			{
 				await Task.Delay(TimeSpan.FromSeconds(30), game.TimeoutCancellation.Token);
 				await channel.SendMessageAsync($"{user.Mention} didn't accept {message.Author.Mention}'s challenge in time.");
-				runningGames.Remove(game);
-				guildData.SetCoins(message.Author, guildData.GetCoins(message.Author) + bet);
-				guildData.SetCoins(user, guildData.GetCoins(user) + bet);
-				return;
 			}
 			catch (TaskCanceledException)
 			{
+				int player1Coins, player2Coins;
+				if ((player1Coins = guildData.GetCoins(message.Author)) < bet)
+				{
+					await channel.SendMessageAsync($"You don't have enough {config.Currency.CurrencyName} anymore.");
+					return;
+				}
+				if ((player2Coins = guildData.GetCoins(user)) < bet)
+				{
+					await channel.SendMessageAsync($"Your opponent doesn't have enough {config.Currency.CurrencyName} anymore.");
+					return;
+				}
+				guildData.SetCoins(message.Author, player1Coins - bet);
+				guildData.SetCoins(user, player2Coins - bet);
+				await channel.SendMessageAsync($"{user.Mention} has accepted {message.Author}'s challenge. Both players, please send me your choice (rock, paper{(isRpsls ? ", " : " or ")}scissors{(isRpsls ? ", lizard or spock" : "")} via DM within the next 60 seconds.");
+			}
+			finally
+			{
+				runningGames.Remove(game);
 			}
 		}
 
@@ -200,7 +210,7 @@ namespace BakaCore.Commands
 				return;
 			}
 			game.Status = RpsGameStatus.Player2Accepted;
-			await channel.SendMessageAsync("Accepted.");
+			game.TimeoutCancellation.Cancel();
 		}
 	}
 }
