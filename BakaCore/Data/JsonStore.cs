@@ -77,6 +77,10 @@ namespace BakaCore.Data
 					await Task.Delay(TimeSpan.FromSeconds(30), scheduledTaskCancelWait.Token);
 				}
 				catch (TaskCanceledException) { }
+				if (!Directory.Exists(".\\data\\"))
+				{
+					Directory.CreateDirectory(".\\data\\");
+				}
 				using (var file = File.Open(".\\data\\coins.json", FileMode.Create, FileAccess.Write))
 				using (var writer = new StreamWriter(file))
 				{
@@ -123,6 +127,10 @@ namespace BakaCore.Data
 					await Task.Delay(TimeSpan.FromSeconds(30), scheduledTaskCancelWait.Token);
 				}
 				catch (TaskCanceledException) { }
+				if (!Directory.Exists(".\\data\\"))
+				{
+					Directory.CreateDirectory(".\\data\\");
+				}
 				using (var file = File.Open(".\\data\\settings.json", FileMode.Create, FileAccess.Write))
 				using (var writer = new StreamWriter(file))
 				{
@@ -170,6 +178,10 @@ namespace BakaCore.Data
 					await Task.Delay(TimeSpan.FromSeconds(30), scheduledTaskCancelWait.Token);
 				}
 				catch (TaskCanceledException) { }
+				if (!Directory.Exists(".\\data\\"))
+				{
+					Directory.CreateDirectory(".\\data\\");
+				}
 				using (var file = File.Open(".\\data\\permissions.json", FileMode.Create, FileAccess.Write))
 				using (var writer = new StreamWriter(file))
 				{
