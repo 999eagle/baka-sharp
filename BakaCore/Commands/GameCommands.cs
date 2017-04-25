@@ -160,10 +160,10 @@ namespace BakaCore.Commands
 			var isRpsls = (rpsls == null) ? false : (rpsls == "rpsls");
 			var game = new RpsGame { Player1 = message.Author, Player2 = user, Channel = channel };
 			runningGames.Add(game);
-			await channel.SendMessageAsync($"{user.Mention}, you have been challenged to a game of rock-paper-scissors. You can accept in the next 30 seconds with `{config.Commands.Tag}rps a`");
+			await channel.SendMessageAsync($"{user.Mention}, you have been challenged to a game of rock-paper-scissors. You can accept in the next {config.Commands.RPS.AcceptTimeout} seconds with `{config.Commands.Tag}rps a`");
 			try
 			{
-				await Task.Delay(TimeSpan.FromSeconds(30), game.TimeoutCancellation.Token);
+				await Task.Delay(TimeSpan.FromSeconds(config.Commands.RPS.AcceptTimeout), game.TimeoutCancellation.Token);
 				await channel.SendMessageAsync($"{user.Mention} didn't accept {message.Author.Mention}'s challenge in time.");
 			}
 			catch (TaskCanceledException)
@@ -196,9 +196,9 @@ namespace BakaCore.Commands
 					{ 4, new[] { 0, 2 } }
 				};
 				var choiceString = String.Join(", ", validChoices.Take(validChoices.Count - 1)) + " or " + validChoices.Last();
-				await channel.SendMessageAsync($"{user.Mention} has accepted {message.Author}'s challenge. Both players, please send me your choice ({choiceString}) via DM within the next 60 seconds.");
-				var player1Task = channel.Discord.WaitForMessageAsync(TimeSpan.FromSeconds(60), CreateMessageFilter(message.Author));
-				var player2Task = channel.Discord.WaitForMessageAsync(TimeSpan.FromSeconds(60), CreateMessageFilter(user));
+				await channel.SendMessageAsync($"{user.Mention} has accepted {message.Author}'s challenge. Both players, please send me your choice ({choiceString}) via DM within the next {config.Commands.RPS.ChoiceTimeout} seconds.");
+				var player1Task = channel.Discord.WaitForMessageAsync(TimeSpan.FromSeconds(config.Commands.RPS.ChoiceTimeout), CreateMessageFilter(message.Author));
+				var player2Task = channel.Discord.WaitForMessageAsync(TimeSpan.FromSeconds(config.Commands.RPS.ChoiceTimeout), CreateMessageFilter(user));
 				var player1Msg = await player1Task;
 				var player2Msg = await player2Task;
 				if (player1Msg == null || player2Msg == null)

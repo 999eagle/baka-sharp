@@ -47,6 +47,10 @@
 					"Combination": [ 5 ]
 				}
 			]
+		},
+		"RPS": {
+			"AcceptTimeout": 30,
+			"ChoiceTimeout": 60
 		}
 	},
 	"API": {
