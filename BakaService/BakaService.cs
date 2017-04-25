@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.ServiceProcess;
 using System.Text;
@@ -33,6 +34,7 @@ namespace BakaService
 
 		protected override void OnStart(string[] args)
 		{
+			Directory.SetCurrentDirectory(AppDomain.CurrentDomain.BaseDirectory);
 			logger.LogInformation("Service starting");
 			logger.LogTrace("Loading configuration");
 			var configBuilder = new ConfigurationBuilder();
