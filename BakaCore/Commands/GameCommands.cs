@@ -181,7 +181,22 @@ namespace BakaCore.Commands
 				}
 				guildData.SetCoins(message.Author, player1Coins - bet);
 				guildData.SetCoins(user, player2Coins - bet);
-				await channel.SendMessageAsync($"{user.Mention} has accepted {message.Author}'s challenge. Both players, please send me your choice (rock, paper{(isRpsls ? ", " : " or ")}scissors{(isRpsls ? ", lizard or spock" : "")} via DM within the next 60 seconds.");
+				var validChoices = new List<string> { "rock", "paper", "scissors" };
+				if (isRpsls)
+				{
+					validChoices.Add("lizard");
+					validChoices.Add("spock");
+				}
+				var rpsWin = new Dictionary<int, int[]>
+				{
+					{ 0, new[] { 2, 3 } },
+					{ 1, new[] { 0, 4 } },
+					{ 2, new[] { 1, 3 } },
+					{ 3, new[] { 1, 4 } },
+					{ 4, new[] { 0, 2 } }
+				};
+				var choiceString = String.Join(", ", validChoices.Take(validChoices.Count - 1)) + " or " + validChoices.Last();
+				await channel.SendMessageAsync($"{user.Mention} has accepted {message.Author}'s challenge. Both players, please send me your choice ({choiceString}) via DM within the next 60 seconds.");
 				var player1Task = channel.Discord.WaitForMessageAsync(TimeSpan.FromSeconds(60), CreateMessageFilter(message.Author));
 				var player2Task = channel.Discord.WaitForMessageAsync(TimeSpan.FromSeconds(60), CreateMessageFilter(user));
 				var player1Msg = await player1Task;
@@ -193,15 +208,29 @@ namespace BakaCore.Commands
 					guildData.SetCoins(user, guildData.GetCoins(user) + bet);
 					return;
 				}
+				var p1Choice = validChoices.IndexOf(player1Msg.Content.ToLowerInvariant());
+				var p2Choice = validChoices.IndexOf(player2Msg.Content.ToLowerInvariant());
+				var text = $"{message.Author.Mention} chose {validChoices[p1Choice]}, {user.Mention} chose {validChoices[p2Choice]}. ";
+				if (rpsWin[p1Choice].Contains(p2Choice))
+				{
+					text += $"That's a win for {message.Author.Mention}!";
+					guildData.SetCoins(message.Author, guildData.GetCoins(message.Author) + bet * 2);
+				}
+				else if (rpsWin[p2Choice].Contains(p1Choice))
+				{
+					text += $"That's a win for {user.Mention}!";
+					guildData.SetCoins(user, guildData.GetCoins(user) + bet * 2);
+				}
+				else
+				{
+					text += "That's a draw!";
+					guildData.SetCoins(message.Author, guildData.GetCoins(message.Author) + bet);
+					guildData.SetCoins(user, guildData.GetCoins(user) + bet);
+				}
+				await channel.SendMessageAsync(text);
 
 				Func<SocketMessage, bool> CreateMessageFilter(SocketUser targetUser)
 				{
-					var validContents = new List<string> { "rock", "paper", "scissors" };
-					if (isRpsls)
-					{
-						validContents.Add("lizard");
-						validContents.Add("spock");
-					}
 					return (msg) => MessageFilter(msg).GetAwaiter().GetResult();
 					async Task<bool> MessageFilter(SocketMessage msg)
 					{
@@ -209,12 +238,12 @@ namespace BakaCore.Commands
 						{
 							return false;
 						}
-						if (validContents.Contains(msg.Content.ToLowerInvariant()))
+						if (validChoices.Contains(msg.Content.ToLowerInvariant()))
 						{
 							await msg.Channel.SendMessageAsync($"You chose {msg.Content.ToLowerInvariant()}.");
 							return true;
 						}
-						await msg.Channel.SendMessageAsync($"Please choose one of: {String.Join(", ", validContents.Take(validContents.Count - 1))} or {validContents[validContents.Count - 1]}.");
+						await msg.Channel.SendMessageAsync($"Please choose one of {choiceString}.");
 						return false;
 					}
 				}
