@@ -182,6 +182,42 @@ namespace BakaCore.Commands
 				guildData.SetCoins(message.Author, player1Coins - bet);
 				guildData.SetCoins(user, player2Coins - bet);
 				await channel.SendMessageAsync($"{user.Mention} has accepted {message.Author}'s challenge. Both players, please send me your choice (rock, paper{(isRpsls ? ", " : " or ")}scissors{(isRpsls ? ", lizard or spock" : "")} via DM within the next 60 seconds.");
+				var player1Task = channel.Discord.WaitForMessageAsync(TimeSpan.FromSeconds(60), CreateMessageFilter(message.Author));
+				var player2Task = channel.Discord.WaitForMessageAsync(TimeSpan.FromSeconds(60), CreateMessageFilter(user));
+				var player1Msg = await player1Task;
+				var player2Msg = await player2Task;
+				if (player1Msg == null || player2Msg == null)
+				{
+					await channel.SendMessageAsync("I didn't receive your choices in time. The game was canceled.");
+					guildData.SetCoins(message.Author, guildData.GetCoins(message.Author) + bet);
+					guildData.SetCoins(user, guildData.GetCoins(user) + bet);
+					return;
+				}
+
+				Func<SocketMessage, bool> CreateMessageFilter(SocketUser targetUser)
+				{
+					var validContents = new List<string> { "rock", "paper", "scissors" };
+					if (isRpsls)
+					{
+						validContents.Add("lizard");
+						validContents.Add("spock");
+					}
+					return (msg) => MessageFilter(msg).GetAwaiter().GetResult();
+					async Task<bool> MessageFilter(SocketMessage msg)
+					{
+						if (!(msg.Channel is SocketDMChannel && targetUser.Id == msg.Author.Id))
+						{
+							return false;
+						}
+						if (validContents.Contains(msg.Content.ToLowerInvariant()))
+						{
+							await msg.Channel.SendMessageAsync($"You chose {msg.Content.ToLowerInvariant()}.");
+							return true;
+						}
+						await msg.Channel.SendMessageAsync($"Please choose one of: {String.Join(", ", validContents.Take(validContents.Count - 1))} or {validContents[validContents.Count - 1]}.");
+						return false;
+					}
+				}
 			}
 			finally
 			{
