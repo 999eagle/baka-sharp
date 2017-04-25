@@ -21,6 +21,7 @@ namespace BakaCore
 			public bool Disabled { get; set; }
 			public string Tag { get; set; }
 			public _Slots Slots { get; set; }
+			public _RPS RPS { get; set; }
 			public class _Slots
 			{
 				public int Count { get; set; }
@@ -35,6 +36,11 @@ namespace BakaCore
 					public string Text { get; set; }
 					public int[] Combination { get; set; }
 				}
+			}
+			public class _RPS
+			{
+				public int AcceptTimeout { get; set; }
+				public int ChoiceTimeout { get; set; }
 			}
 		}
 		public class API

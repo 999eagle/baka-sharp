@@ -35,17 +35,22 @@ namespace BakaCore
 			return m;
 		}
 
-		public static async Task<SocketMessage> WaitForMessage(this SocketChannel channel, TimeSpan timeout, Func<SocketMessage, bool> filter)
+		public static async Task<SocketMessage> WaitForMessageAsync(this SocketChannel channel, TimeSpan timeout, Func<SocketMessage, bool> filter)
+		{
+			return await channel.Discord.WaitForMessageAsync(timeout, (message) => (message.Channel.Id == channel.Id && filter(message)));
+		}
+
+		public static async Task<SocketMessage> WaitForMessageAsync(this DiscordSocketClient client, TimeSpan timeout, Func<SocketMessage, bool> filter)
 		{
 			var cancellationTokenSource = new CancellationTokenSource();
 			SocketMessage matchingMessage = null;
-			channel.Discord.MessageReceived += MessageReceived;
+			client.MessageReceived += MessageReceived;
 			try
 			{
 				await Task.Delay(timeout, cancellationTokenSource.Token);
 			}
 			catch (TaskCanceledException) { }
-			channel.Discord.MessageReceived -= MessageReceived;
+			client.MessageReceived -= MessageReceived;
 			return matchingMessage;
 
 			Task MessageReceived(SocketMessage message)
