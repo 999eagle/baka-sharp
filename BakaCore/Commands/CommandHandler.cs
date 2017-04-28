@@ -241,6 +241,11 @@ namespace BakaCore.Commands
 					if (sub == command)
 						commandsWithSameName = new[] { command };
 				}
+				commandsWithSameName = commandsWithSameName.Where(c => c.Help != null);
+				if (!commandsWithSameName.Any())
+				{
+					return false;
+				}
 				var text = "Usage:";
 				foreach (var c in commandsWithSameName)
 				{
