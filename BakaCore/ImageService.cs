@@ -5,6 +5,7 @@ using System.Text;
 
 using Discord;
 using Discord.WebSocket;
+using Microsoft.Extensions.Logging;
 
 namespace BakaCore
 {
@@ -12,19 +13,25 @@ namespace BakaCore
 	{
 		private Configuration config;
 		private Random rand;
+		private ILogger logger;
 
 		internal static ImageService instance;
 
-		public ImageService(Configuration config, Random rand)
+		public ImageService(Configuration config, Random rand, ILoggerFactory loggerFactory)
 		{
 			this.config = config;
 			this.rand = rand;
+			this.logger = loggerFactory.CreateLogger<ImageService>();
 			instance = this;
 		}
 
 		public EmbedBuilder EmbedImage(EmbedBuilder builder, string imageKey)
 		{
-			if (!config.Images.ImageData.ContainsKey(imageKey)) return builder;
+			if (!config.Images.ImageData.ContainsKey(imageKey))
+			{
+				logger.LogWarning($"No image data for key \"{imageKey}\" found!");
+				return builder;
+			}
 			var imageData = config.Images.ImageData[imageKey];
 			var imagePath = imageData.FileName;
 			if (imageData.Count > 1)
