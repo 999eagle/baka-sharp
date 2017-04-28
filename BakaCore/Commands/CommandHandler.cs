@@ -138,7 +138,10 @@ namespace BakaCore.Commands
 			var text = "**Baka-chan**\nMade by **The999eagle#6302**\n\n";
 			foreach (var command in registeredCommands)
 			{
-				text += $"`{config.Commands.Tag}{command.GetFullUsage()}`: {command.Help}\n";
+				if (command.Help == null) continue;
+				text += $"`{config.Commands.Tag}{command.GetFullUsage()}`";
+				if (command.Help != "") text += $": {command.Help}";
+				text += "\n";
 			}
 			var channel = await message.Author.CreateDMChannelAsync();
 			await channel.SendMessageAsync(text);
