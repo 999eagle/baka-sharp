@@ -135,5 +135,29 @@ namespace BakaCore.Commands
 		{
 			await message.Channel.SendMessageAsync("", false, imageService.GetImageEmbed("respect"));
 		}
+
+		[Command("disgust")]
+		public async Task DisgustCommand(SocketMessage message)
+		{
+			await message.Channel.SendMessageAsync("", false, imageService.GetImageEmbed("disgust"));
+		}
+
+		[Command("notwork")]
+		public async Task NotworkCommand(SocketMessage message) { await message.Channel.SendMessageAsync("", false, imageService.GetImageEmbed("notwork")); }
+
+		[Command("trustme")]
+		public async Task TrustmeCommand(SocketMessage message) { await message.Channel.SendMessageAsync("", false, imageService.GetImageEmbed("trustme")); }
+
+		[Command("calmdown")]
+		public async Task CalmDownCommand(SocketMessage message) { await message.Channel.SendMessageAsync("", false, imageService.GetImageEmbed("calmdown")); }
+
+		[Command("coverup")]
+		public async Task CoverUpCommand(SocketMessage message) { await message.Channel.SendMessageAsync("", false, imageService.GetImageEmbed("cover_up")); }
+
+		[Command("thumbsup")]
+		public async Task ThumbsUpCommand(SocketMessage message) { await message.Channel.SendMessageAsync("", false, imageService.GetImageEmbed("thumbs_up")); }
+
+		[Command("gtfo")]
+		public async Task GTFOCommand(SocketMessage message) { await message.Channel.SendMessageAsync("", false, imageService.GetImageEmbed("gtfo")); }
 	}
 }

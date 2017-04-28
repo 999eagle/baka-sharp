@@ -77,7 +77,15 @@
 			},
 			"slap": {
 				"FileName": "slap.gif"
-			}
+			},
+			"disgust": {
+				"FileName": "disgust_single.gif"
+			},
+			"notwork": { "FileName": "notwork.jpg" },
+			"trustme": { "FileName": "trustme.jpg" },
+			"calmdown": { "FileName": "calmdown.jpg" },
+			"cover_up": { "FileName": "cover_up.jpg" },
+			"thumbs_up": { "FileName": "thumbs{0}.jpg", "Count": 4 }
 		}
 	}
 }
