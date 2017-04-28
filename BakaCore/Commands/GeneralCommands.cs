@@ -135,5 +135,11 @@ namespace BakaCore.Commands
 		{
 			await message.Channel.SendMessageAsync("", false, imageService.GetImageEmbed("respect"));
 		}
+
+		[Command("disgust")]
+		public async Task DisgustCommand(SocketMessage message)
+		{
+			await message.Channel.SendMessageAsync("", false, imageService.GetImageEmbed("disgust"));
+		}
 	}
 }
