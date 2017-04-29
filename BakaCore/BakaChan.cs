@@ -52,6 +52,7 @@ namespace BakaCore
 					.AddScoped<Commands.CommandHandler>()
 					.AddScoped<Commands.ArgumentParser>()
 					.AddScoped<Greeting>()
+					.AddScoped<Songs>()
 					.AddScoped<Data.IDataStore, Data.JsonStore>()
 					.AddScoped((_) => new Random())
 					.AddScoped<ImageService>();
@@ -77,6 +78,7 @@ namespace BakaCore
 			commandHandler.RegisterCommands<Commands.GameCommands>();
 			commandHandler.RegisterCommands<Commands.SettingsCommands>();
 			var greetings = instanceServiceScope.ServiceProvider.GetRequiredService<Greeting>();
+			var songs = instanceServiceScope.ServiceProvider.GetRequiredService<Songs>();
 			return RunAsync();
 			async Task RunAsync()
 			{
