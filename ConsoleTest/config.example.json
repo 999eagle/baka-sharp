@@ -89,5 +89,9 @@
 			"lewd": { "FileName": "lewd.jpg" },
 			"wtf": { "FileName": "wtf{0}.jpg", "Count": 4 }
 		}
+	},
+	"Songs": {
+		"Enabled": true,
+		"Timeout": 15
 	}
 }
