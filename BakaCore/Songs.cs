@@ -18,6 +18,11 @@ namespace BakaCore
 		private readonly string[][] lyrics = new[] {
 			new[] { "What is love?", "Baby don't hurt me", "Don't hurt me", "No more" },
 			new[] { "Never gonna give you up", "Never gonna let you down", "Never gonna run around and desert you", "Never gonna make you cry", "Never gonna say goodbye", "Never gonna tell a lie and hurt you" },
+			new[] { "I'm blue", "Da ba dee da ba daa" },
+			new[] { "And I know why", "Coz I got high" },
+			new[] { "I wanna be the very best", "Like no one ever was", "To catch them is my real test", "To train them is my cause", "I will travel across the land", "Searching far and wide", "Each Pokémon to understand", "The power that's inside", "Pokémon, gotta catch 'em all!", "It's you and me", "I know it's my destiny", "Pokémon, oh, you're my best friend", "In a world we must defend", "Pokémon, gotta catch 'em all!", "A heart so true", "Our courage will pull us through", "You teach me and I'll teach you", "Pokémon, gotta catch 'em all!", "Gotta catch 'em all!", "Yeah" },
+			new[] { "Po-a-mon", "(Tötet sie alle!)" },
+			new[] { "It's beginning to look a lot like murder", "Everywhere you go", "Senpai's bothersome childhood friend", "Is flirting with him again", "She wants him, but I'll never let him go", "It's beginning to look a lot like murder", "Lots of blood and gore", "But the prettiest sight to see", "Is Senpai beneath a tree", "The boy I adore!", "A rusty pipe made of lead and a blow to the head", "Will take care of Kokona-chan!", "A shiny sharp axe and one glorious whack", "To eliminate Osana-chan!", "Oh golly, I can hardly wait for school to start again", "It's beginning to look a lot like murder", "Everywhere you go", "Well I could send her straight to hell", "Or just get her expelled", "Stab her quick or gut her nice and slow", "It's beginning to look a lot like murder", "Killing is an art!", "Won't you please stop your struggling", "You know I just want one thing", "To carve out your heart" },
 		};
 		private readonly string[][] normalizedLyrics;
 		private IDictionary<ulong, IDictionary<uint, uint>> songStates;
