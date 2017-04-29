@@ -50,7 +50,15 @@ namespace BakaCore
 		}
 
 		private readonly char[] removeChars = new[] { '.', ',', '\'', '?', '!' };
-		private string NormalizeLyrics(string lyrics) => new string(lyrics.Where(c => !removeChars.Contains(c)).ToArray()).ToLowerInvariant();
+		private readonly char[][] replaceChars = new[] {
+			new[] { 'e', 'é', 'è', 'ê' },
+		};
+		private string NormalizeLyrics(string lyrics) =>
+			new string(lyrics
+				.ToLowerInvariant()
+				.Where(c => !removeChars.Contains(c))
+				.Select(c => (replaceChars.FirstOrDefault(a => a.Skip(1).Contains(c))?[0]) ?? c)
+				.ToArray());
 
 		private async Task MessageReceived(SocketMessage message)
 		{
