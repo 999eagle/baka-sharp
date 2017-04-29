@@ -85,7 +85,9 @@
 			"trustme": { "FileName": "trustme.jpg" },
 			"calmdown": { "FileName": "calmdown.jpg" },
 			"cover_up": { "FileName": "cover_up.jpg" },
-			"thumbs_up": { "FileName": "thumbs{0}.jpg", "Count": 4 }
+			"thumbs_up": { "FileName": "thumbs{0}.jpg", "Count": 4 },
+			"lewd": { "FileName": "lewd.jpg" },
+			"wtf": { "FileName": "wtf{0}.jpg", "Count": 4 }
 		}
 	}
 }

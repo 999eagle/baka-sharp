@@ -159,5 +159,11 @@ namespace BakaCore.Commands
 
 		[Command("gtfo")]
 		public async Task GTFOCommand(SocketMessage message) { await message.Channel.SendMessageAsync("", false, imageService.GetImageEmbed("gtfo")); }
+
+		[Command("lewd")]
+		public async Task LewdCommand(SocketMessage message) { await message.Channel.SendMessageAsync("", false, imageService.GetImageEmbed("lewd")); }
+
+		[Command("wtf")]
+		public async Task WTFCommand(SocketMessage message) { await message.Channel.SendMessageAsync("", false, imageService.GetImageEmbed("wtf")); }
 	}
 }
