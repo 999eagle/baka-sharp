@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 
@@ -9,16 +10,18 @@ using Discord.WebSocket;
 
 namespace BakaCore
 {
-	class Songs
+	class Songs : IDisposable
 	{
 		private ILogger logger;
 		private DiscordSocketClient client;
+
 		private readonly string[][] lyrics = new[] {
 			new[] { "What is love?", "Baby don't hurt me", "Don't hurt me", "No more" },
 			new[] { "Never gonna give you up", "Never gonna let you down", "Never gonna run around and desert you", "Never gonna make you cry", "Never gonna say goodbye", "Never gonna tell a lie and hurt you" },
 		};
 		private readonly string[][] normalizedLyrics;
 		private IDictionary<ulong, IDictionary<uint, uint>> songStates;
+		private IDictionary<(ulong channel, uint song), (CancellationTokenSource token, Task task)> cancellationTokens;
 
 		public Songs(ILoggerFactory loggerFactory, DiscordSocketClient client)
 		{
@@ -28,7 +31,17 @@ namespace BakaCore
 
 			normalizedLyrics = lyrics.Select(s => s.Select(NormalizeLyrics).ToArray()).ToArray();
 			songStates = new Dictionary<ulong, IDictionary<uint, uint>>();
+			cancellationTokens = new Dictionary<(ulong, uint), (CancellationTokenSource, Task)>();
 			logger.LogInformation("Initialized");
+		}
+
+		public void Dispose()
+		{
+			foreach (var kv in cancellationTokens)
+			{
+				kv.Value.token.Cancel();
+				kv.Value.task.GetAwaiter().GetResult();
+			}
 		}
 
 		private readonly char[] removeChars = new[] { '.', ',', '\'', '?', '!' };
@@ -53,6 +66,45 @@ namespace BakaCore
 				{
 					await message.Channel.SendMessageAsync(lyrics[songIdx][lineIdx + 1] + " :notes:");
 					channelState[songIdx] = lineIdx + 2;
+					SongTimeout(message.Channel.Id, songIdx);
+				}
+			}
+		}
+
+		private void SongTimeout(ulong channelId, uint songIdx)
+		{
+			if (cancellationTokens.TryGetValue((channelId, songIdx), out var tokenTask))
+			{
+				if (!tokenTask.task.IsCompleted)
+				{
+					tokenTask.token.Cancel();
+					logger.LogDebug("Canceled previous song timeout.");
+				}
+				tokenTask.task.GetAwaiter().GetResult();
+			}
+			var tokenSource = new CancellationTokenSource();
+			var task = Timeout();
+			cancellationTokens[(channelId, songIdx)] = (tokenSource, task);
+			logger.LogDebug($"Scheduled timeout for song {songIdx} in channel {channelId}.");
+
+			async Task Timeout()
+			{
+				try
+				{
+					await Task.Delay(TimeSpan.FromSeconds(30), tokenSource.Token);
+					logger.LogDebug($"Song {songIdx} in channel {channelId} timed out.");
+					songStates[channelId].Remove(songIdx);
+					if (!songStates[channelId].Any())
+					{
+						songStates.Remove(channelId);
+					}
+					cancellationTokens.Remove((channelId, songIdx));
+					logger.LogTrace("Cleaned up state.");
+				}
+				catch (TaskCanceledException) { }
+				catch (Exception ex)
+				{
+					logger.LogError(new EventId(), ex, "Unhandled exception in song timeout!");
 				}
 			}
 		}
