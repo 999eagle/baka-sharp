@@ -87,5 +87,9 @@
 			"cover_up": { "FileName": "cover_up.jpg" },
 			"thumbs_up": { "FileName": "thumbs{0}.jpg", "Count": 4 }
 		}
+	},
+	"Songs": {
+		"Enabled": true,
+		"Timeout": 15
 	}
 }

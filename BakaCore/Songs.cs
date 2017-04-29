@@ -14,6 +14,7 @@ namespace BakaCore
 	{
 		private ILogger logger;
 		private DiscordSocketClient client;
+		private Configuration config;
 
 		private readonly string[][] lyrics = new[] {
 			new[] { "What is love?", "Baby don't hurt me", "Don't hurt me", "No more" },
@@ -28,8 +29,9 @@ namespace BakaCore
 		private IDictionary<ulong, IDictionary<uint, uint>> songStates;
 		private IDictionary<(ulong channel, uint song), (CancellationTokenSource token, Task task)> cancellationTokens;
 
-		public Songs(ILoggerFactory loggerFactory, DiscordSocketClient client)
+		public Songs(ILoggerFactory loggerFactory, DiscordSocketClient client, Configuration config)
 		{
+			this.config = config;
 			this.client = client;
 			this.logger = loggerFactory.CreateLogger<Songs>();
 			this.client.MessageReceived += MessageReceived;
@@ -62,6 +64,7 @@ namespace BakaCore
 
 		private async Task MessageReceived(SocketMessage message)
 		{
+			if (!config.Songs.Enabled) return;
 			string normalizedContent = NormalizeLyrics(message.Content);
 			if (!songStates.TryGetValue(message.Channel.Id, out var channelState))
 			{
@@ -104,7 +107,7 @@ namespace BakaCore
 			{
 				try
 				{
-					await Task.Delay(TimeSpan.FromSeconds(30), tokenSource.Token);
+					await Task.Delay(TimeSpan.FromSeconds(config.Songs.Timeout), tokenSource.Token);
 					logger.LogDebug($"Song {songIdx} in channel {channelId} timed out.");
 					songStates[channelId].Remove(songIdx);
 					if (!songStates[channelId].Any())

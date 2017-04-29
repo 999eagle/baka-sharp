@@ -64,6 +64,11 @@ namespace BakaCore
 				public int Count { get; set; }
 			}
 		}
+		public class Songs
+		{
+			public bool Enabled { get; set; }
+			public int Timeout { get; set; }
+		}
 	}
 	public class Configuration
 	{
@@ -72,5 +77,6 @@ namespace BakaCore
 		public API API { get; set; }
 		public Currency Currency { get; set; }
 		public Images Images { get; set; }
+		public ConfigClasses.Songs Songs { get; set; }
 	}
 }
