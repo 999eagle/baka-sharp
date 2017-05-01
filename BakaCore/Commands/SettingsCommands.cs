@@ -1,12 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 using Discord;
+using Discord.Net;
 using Discord.WebSocket;
 using BakaCore.Data;
 
@@ -144,6 +146,27 @@ namespace BakaCore.Commands
 			var guildData = dataStore.GetGuildData(channel.Guild);
 			guildData.RemovePermission(entity, perm);
 			await channel.SendMessageAsync($"Removed permission {perm.ToString()} from {mention.Mention}");
+		}
+
+		[Command("purge", Help = "Purge the last messages from the current channel.", RequiredPermissions = Permissions.Purge)]
+		public async Task PurgeMessageCommand(SocketMessage message, int amount)
+		{
+			if (amount <= 0)
+			{
+				await message.Channel.SendMessageAsync("Try more than 0 messages, baka!");
+				return;
+			}
+			try
+			{
+				await message.Channel.GetMessagesAsync(amount).ForEachAsync(msg =>
+				{
+					Task.WaitAll(msg.Select(m => m.DeleteAsync()).ToArray());
+				});
+			}
+			catch (AggregateException ex) when (ex.InnerExceptions.All(e => e is HttpException h && h.HttpCode == HttpStatusCode.Forbidden))
+			{
+				await message.Channel.SendMessageAsync("I don't have the permission to delete messages here.");
+			}
 		}
 	}
 }
