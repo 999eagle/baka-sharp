@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -18,11 +18,13 @@ namespace BakaCore.Commands
 	{
 		private IDataStore dataStore;
 		private ILogger logger;
+		private DiscordSocketClient client;
 
 		public SettingsCommands(IServiceProvider services)
 		{
 			dataStore = services.GetRequiredService<IDataStore>();
 			logger = services.GetRequiredService<ILoggerFactory>().CreateLogger<SettingsCommands>();
+			client = services.GetRequiredService<DiscordSocketClient>();
 		}
 
 		[Command("settings", Subcommand = "set", Help = "Change a setting.", RequiredPermissions = Permissions.Settings, Scope = CommandScope.Guild)]
@@ -36,7 +38,7 @@ namespace BakaCore.Commands
 				case "welcome":
 				case "welcomechannel":
 					await message.Channel.SendMessageAsync("Type \"yes\" within 5 seconds to announce newly joined users in this channel.");
-					var answer = await channel.WaitForMessageAsync(TimeSpan.FromSeconds(5), m => (m.Author == message.Author && m.Content == "yes"));
+					var answer = await channel.WaitForMessageAsync(client, TimeSpan.FromSeconds(5), m => (m.Author == message.Author && m.Content == "yes"));
 					if (answer == null)
 					{
 						await channel.SendMessageAsync("Time expired; nothing was changed.");
