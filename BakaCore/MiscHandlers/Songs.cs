@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 
 using Discord.WebSocket;
 
-namespace BakaCore
+namespace BakaCore.MiscHandlers
 {
 	class Songs : IDisposable
 	{
