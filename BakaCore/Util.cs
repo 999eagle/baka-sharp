@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading;
@@ -35,9 +35,9 @@ namespace BakaCore
 			return m;
 		}
 
-		public static async Task<SocketMessage> WaitForMessageAsync(this SocketChannel channel, TimeSpan timeout, Func<SocketMessage, bool> filter)
+		public static async Task<SocketMessage> WaitForMessageAsync(this SocketChannel channel, DiscordSocketClient client, TimeSpan timeout, Func<SocketMessage, bool> filter)
 		{
-			return await channel.Discord.WaitForMessageAsync(timeout, (message) => (message.Channel.Id == channel.Id && filter(message)));
+			return await client.WaitForMessageAsync(timeout, (message) => (message.Channel.Id == channel.Id && filter(message)));
 		}
 
 		public static async Task<SocketMessage> WaitForMessageAsync(this DiscordSocketClient client, TimeSpan timeout, Func<SocketMessage, bool> filter)

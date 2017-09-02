@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -143,8 +143,7 @@ namespace BakaCore.Commands
 				if (command.Help != "") text += $": {command.Help}";
 				text += "\n";
 			}
-			var channel = await message.Author.CreateDMChannelAsync();
-			await channel.SendMessageAsync(text);
+			await message.Author.SendMessageAsync(text);
 		}
 
 		private CommandDescription CreateCommand(object instance, MethodInfo meth, ICommandDescription description)

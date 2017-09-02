@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -9,7 +9,7 @@ using Discord;
 using Discord.WebSocket;
 using BakaCore.Data;
 
-namespace BakaCore
+namespace BakaCore.MiscHandlers
 {
 	class Greeting
 	{
@@ -23,6 +23,7 @@ namespace BakaCore
 			this.client = client;
 			this.dataStore = dataStore;
 			this.client.UserJoined += UserJoined;
+			logger.LogInformation("Initialized");
 		}
 
 		private async Task UserJoined(SocketGuildUser user)

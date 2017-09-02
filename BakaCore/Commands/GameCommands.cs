@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -18,6 +18,7 @@ namespace BakaCore.Commands
 		Configuration config;
 		IDataStore dataStore;
 		Random rand;
+		DiscordSocketClient client;
 
 		public GameCommands(IServiceProvider services)
 		{
@@ -25,6 +26,7 @@ namespace BakaCore.Commands
 			config = services.GetRequiredService<Configuration>();
 			logger = services.GetRequiredService<ILoggerFactory>().CreateLogger<GameCommands>();
 			rand = services.GetRequiredService<Random>();
+			client = services.GetRequiredService<DiscordSocketClient>();
 
 			foreach (var win in config.Commands.Slots.Wins)
 			{
@@ -197,8 +199,8 @@ namespace BakaCore.Commands
 				};
 				var choiceString = String.Join(", ", validChoices.Take(validChoices.Count - 1)) + " or " + validChoices.Last();
 				await channel.SendMessageAsync($"{user.Mention} has accepted {message.Author}'s challenge. Both players, please send me your choice ({choiceString}) via DM within the next {config.Commands.RPS.ChoiceTimeout} seconds.");
-				var player1Task = channel.Discord.WaitForMessageAsync(TimeSpan.FromSeconds(config.Commands.RPS.ChoiceTimeout), CreateMessageFilter(message.Author));
-				var player2Task = channel.Discord.WaitForMessageAsync(TimeSpan.FromSeconds(config.Commands.RPS.ChoiceTimeout), CreateMessageFilter(user));
+				var player1Task = channel.WaitForMessageAsync(client, TimeSpan.FromSeconds(config.Commands.RPS.ChoiceTimeout), CreateMessageFilter(message.Author));
+				var player2Task = channel.WaitForMessageAsync(client, TimeSpan.FromSeconds(config.Commands.RPS.ChoiceTimeout), CreateMessageFilter(user));
 				var player1Msg = await player1Task;
 				var player2Msg = await player2Task;
 				if (player1Msg == null || player2Msg == null)

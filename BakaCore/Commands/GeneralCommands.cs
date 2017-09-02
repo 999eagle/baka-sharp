@@ -14,11 +14,13 @@ namespace BakaCore.Commands
 	{
 		private Random rand;
 		private ImageService imageService;
+		private DiscordSocketClient client;
 
 		public GeneralCommands(IServiceProvider services)
 		{
 			rand = services.GetRequiredService<Random>();
 			imageService = services.GetRequiredService<ImageService>();
+			client = services.GetRequiredService<DiscordSocketClient>();
 		}
 
 		[Command("mods", Help = "Shows the mods on the server.", Scope = CommandScope.Guild)]
@@ -70,7 +72,7 @@ namespace BakaCore.Commands
 		[Command("ping", Help = "Get current ping time to the Discord servers.")]
 		public async Task PingCommand(SocketMessage message)
 		{
-			await message.Channel.SendMessageAsync($"Pong\nRTT: {message.Discord.Latency}ms");
+			await message.Channel.SendMessageAsync($"Pong\nRTT: {client.Latency}ms");
 		}
 
 		[Command("roll", Help = "Generate a random number between 1 and <number> (both inclusive).")]

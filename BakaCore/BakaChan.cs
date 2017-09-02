@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -21,6 +21,12 @@ namespace BakaCore
 		private IServiceProvider services;
 		private IServiceScope instanceServiceScope;
 		private ILogger logger;
+
+		private IList<Type> miscHandlers = new List<Type>
+		{
+			typeof(MiscHandlers.Greeting),
+			typeof(MiscHandlers.Songs),
+		};
 
 		public BakaChan(Configuration config)
 		{
@@ -51,11 +57,14 @@ namespace BakaCore
 					.AddScoped<DiscordSocketClient>()
 					.AddScoped<Commands.CommandHandler>()
 					.AddScoped<Commands.ArgumentParser>()
-					.AddScoped<Greeting>()
-					.AddScoped<Songs>()
 					.AddScoped<Data.IDataStore, Data.JsonStore>()
 					.AddScoped((_) => new Random())
 					.AddScoped<ImageService>();
+
+				foreach (var handlerType in miscHandlers)
+				{
+					services.AddScoped(handlerType);
+				}
 
 				this.services = services.BuildServiceProvider();
 			}
@@ -77,8 +86,8 @@ namespace BakaCore
 			commandHandler.RegisterCommands<Commands.CoinsCommands>();
 			commandHandler.RegisterCommands<Commands.GameCommands>();
 			commandHandler.RegisterCommands<Commands.SettingsCommands>();
-			var greetings = instanceServiceScope.ServiceProvider.GetRequiredService<Greeting>();
-			var songs = instanceServiceScope.ServiceProvider.GetRequiredService<Songs>();
+			logger.LogDebug("Initializing misc handlers.");
+			var handlerInstances = miscHandlers.Select(type => instanceServiceScope.ServiceProvider.GetRequiredService(type)).ToList();
 			return RunAsync();
 			async Task RunAsync()
 			{
