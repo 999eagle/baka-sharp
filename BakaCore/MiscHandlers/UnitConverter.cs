@@ -20,10 +20,12 @@ namespace BakaCore.MiscHandlers
 		private static string numberRegex = "(-?(([0-9]+(\\.[0-9]*)?)|(\\.[0-9]+)))";
 		private static IEnumerable<(string groupName, string regex, string fromUnit, string toUnit)> knownUnitRegexes = new[]
 		{
-			("ft", "ft|'", null, "m"),
-			("F", "°?[Ff]", "°F", "°C"),
-			("mph", "mph", null, "km/h"),
-			("in", "in|''|\"", null, "cm"),
+			("ft", "ft|'|[fF](ee|oo)t", null, "m"),
+			("F", "°?[Ff]|[fF]ahrenheit", "°F", "°C"),
+			("mph", "mph|mi/h", null, "km/h"),
+			("in", "in|''|\"|[iI]nch(es)?", null, "cm"),
+			("yd", "yd|[yY]ards?", null, "m"),
+			("sqft", "ft^2|[sS]q(uare)? ?[fF](ee|oo)?t", "ft^2", "m^2"),
 		};
 		private static string knownUnitRegex = String.Join("|", knownUnitRegexes.Select(t => $"(?<{t.groupName}>{t.regex})"));
 		private static string simpleValueRegex = $"((?<value>{numberRegex}) ?(?<unit>{knownUnitRegex}))";
