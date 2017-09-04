@@ -63,7 +63,7 @@ namespace BakaCore.MiscHandlers
 					}
 					if (fromUnit != "")
 					{
-						var m = new Measurement(value, fromUnit);
+						var m = new Measurement(Ratio.GetNearestRatio(value, 1e-4), fromUnit);
 						result += $"{m} = {m.ConvertTo(toUnit)}\n";
 					}
 				}
@@ -71,8 +71,8 @@ namespace BakaCore.MiscHandlers
 				{
 					if (!Double.TryParse(match.Groups["value_ft"].Value, out var valueFt)) continue;
 					if (!Double.TryParse(match.Groups["value_in"].Value, out var valueIn)) continue;
-					var f = new Measurement(valueFt, "ft");
-					var i = new Measurement(valueIn, "in");
+					var f = new Measurement(Ratio.GetNearestRatio(valueFt, 1e-4), "ft");
+					var i = new Measurement(Ratio.GetNearestRatio(valueIn, 1e-4), "in");
 					result += $"{f} {i} = {(f + i).ConvertTo("m")}\n";
 				}
 			}
