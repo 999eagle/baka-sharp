@@ -44,41 +44,48 @@ namespace BakaCore.MiscHandlers
 		private async Task MessageReceived(SocketMessage message)
 		{
 			if (message.Author.Id == client.CurrentUser.Id) return;
-			var matches = unitRegex.Matches(message.Content);
-			string result = "";
-			foreach (Match match in matches)
+			try
 			{
-				if (match.Groups["value"].Success)
+				var matches = unitRegex.Matches(message.Content);
+				string result = "";
+				foreach (Match match in matches)
 				{
-					if (!Double.TryParse(match.Groups["value"].Value, out var value)) continue;
-					var fromUnit = "";
-					var toUnit = "";
-					foreach (var unit in knownUnitRegexes)
+					if (match.Groups["value"].Success)
 					{
-						if (match.Groups[unit.groupName].Success)
+						if (!Double.TryParse(match.Groups["value"].Value, out var value)) continue;
+						var fromUnit = "";
+						var toUnit = "";
+						foreach (var unit in knownUnitRegexes)
 						{
-							(fromUnit, toUnit) = (unit.fromUnit ?? unit.groupName, unit.toUnit);
-							break;
+							if (match.Groups[unit.groupName].Success)
+							{
+								(fromUnit, toUnit) = (unit.fromUnit ?? unit.groupName, unit.toUnit);
+								break;
+							}
+						}
+						if (fromUnit != "")
+						{
+							var m = new Measurement(Ratio.GetNearestRatio(value, 1e-4), fromUnit);
+							result += $"{m} = {m.ConvertTo(toUnit)}\n";
 						}
 					}
-					if (fromUnit != "")
+					else if (match.Groups["value_ft"].Success && match.Groups["value_in"].Success)
 					{
-						var m = new Measurement(Ratio.GetNearestRatio(value, 1e-4), fromUnit);
-						result += $"{m} = {m.ConvertTo(toUnit)}\n";
+						if (!Double.TryParse(match.Groups["value_ft"].Value, out var valueFt)) continue;
+						if (!Double.TryParse(match.Groups["value_in"].Value, out var valueIn)) continue;
+						var f = new Measurement(Ratio.GetNearestRatio(valueFt, 1e-4), "ft");
+						var i = new Measurement(Ratio.GetNearestRatio(valueIn, 1e-4), "in");
+						result += $"{f} {i} = {(f + i).ConvertTo("m")}\n";
 					}
 				}
-				else if (match.Groups["value_ft"].Success && match.Groups["value_in"].Success)
+				if (result != "")
 				{
-					if (!Double.TryParse(match.Groups["value_ft"].Value, out var valueFt)) continue;
-					if (!Double.TryParse(match.Groups["value_in"].Value, out var valueIn)) continue;
-					var f = new Measurement(Ratio.GetNearestRatio(valueFt, 1e-4), "ft");
-					var i = new Measurement(Ratio.GetNearestRatio(valueIn, 1e-4), "in");
-					result += $"{f} {i} = {(f + i).ConvertTo("m")}\n";
+					await message.Channel.SendMessageAsync($"I've detected the use of some non-standard freedom units in your message!\nHere's the converted data:\n{result}");
 				}
 			}
-			if (result != "")
+			catch (Exception ex)
 			{
-				await message.Channel.SendMessageAsync($"I've detected the use of some non-standard freedom units in your message!\nHere's the converted data:\n{result}");
+				logger.LogError(ex, $"Exception while converting units: {ex}");
 			}
 		}
 	}
