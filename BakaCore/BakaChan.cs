@@ -26,6 +26,7 @@ namespace BakaCore
 		{
 			typeof(MiscHandlers.Greeting),
 			typeof(MiscHandlers.Songs),
+			typeof(MiscHandlers.UnitConverter),
 		};
 
 		public BakaChan(Configuration config)
