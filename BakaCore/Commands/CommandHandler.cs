@@ -169,7 +169,7 @@ namespace BakaCore.Commands
 					case ParameterInfo mention when (mention.ParameterType == typeof(IMentionable)):
 						usage = "(<@user>|<@role>)";
 						break;
-					case ParameterInfo val when (val.ParameterType == typeof(string) || val.ParameterType == typeof(int)):
+					case ParameterInfo val when (val.ParameterType == typeof(string) || val.ParameterType == typeof(int) || val.ParameterType == typeof(double)):
 						usage = $"<{val.Name}>";
 						break;
 					default:

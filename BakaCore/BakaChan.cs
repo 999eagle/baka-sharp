@@ -87,6 +87,7 @@ namespace BakaCore
 			commandHandler.RegisterCommands<Commands.CoinsCommands>();
 			commandHandler.RegisterCommands<Commands.GameCommands>();
 			commandHandler.RegisterCommands<Commands.SettingsCommands>();
+			commandHandler.RegisterCommands<Commands.UnitCommands>();
 			logger.LogDebug("Initializing misc handlers.");
 			var handlerInstances = miscHandlers.Select(type => instanceServiceScope.ServiceProvider.GetRequiredService(type)).ToList();
 			return RunAsync();

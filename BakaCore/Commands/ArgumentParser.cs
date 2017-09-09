@@ -26,11 +26,15 @@ namespace BakaCore.Commands
 			simpleParseTypes.Add(typeof(SocketUser), ParseSimpleSocketUser);
 			simpleParseTypes.Add(typeof(SocketRole), ParseSimpleSocketRole);
 			simpleParseTypes.Add(typeof(IMentionable), ParseSimpleSocketRoleOrUser);
+			simpleParseTypes.Add(typeof(double), ParseSimpleDouble);
 		}
 
 		(bool, object) ParseSimpleString(string input)
 		{
-			return (true, input);
+			if (input != null)
+				return (true, input);
+			else
+				return (false, null);
 		}
 		(bool, object) ParseSimpleInt(string input)
 		{
@@ -61,6 +65,13 @@ namespace BakaCore.Commands
 			else
 				return ParseSimpleSocketRole(input);
 
+		}
+		(bool, object) ParseSimpleDouble(string input)
+		{
+			if (input != null && Double.TryParse(input, out var val))
+				return (true, val);
+			else
+				return (false, null);
 		}
 		public bool TryParseArguments(IEnumerable<ParameterInfo> parameters, IEnumerable<string> inputs, out IEnumerable<object> parsed)
 		{

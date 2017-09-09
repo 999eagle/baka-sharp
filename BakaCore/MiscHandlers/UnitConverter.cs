@@ -16,6 +16,7 @@ namespace BakaCore.MiscHandlers
 	{
 		private ILogger logger;
 		private DiscordSocketClient client;
+		private Configuration config;
 
 		private static string numberRegex = "(-?(([0-9]+(\\.[0-9]*)?)|(\\.[0-9]+)))";
 		private static IEnumerable<(string groupName, string regex, string fromUnit, string toUnit)> knownUnitRegexes = new[]
@@ -32,18 +33,21 @@ namespace BakaCore.MiscHandlers
 		private static string ftinValueRegex = $"((?<value_ft>{numberRegex}) ?(ft|') ?(?<value_in>{numberRegex})( ?(in|\"|''))?)";
 		private Regex unitRegex = new Regex($"{ftinValueRegex}|{simpleValueRegex}");
 
-		public UnitConverter(ILoggerFactory loggerFactory, DiscordSocketClient client)
+		public UnitConverter(ILoggerFactory loggerFactory, DiscordSocketClient client, Configuration config)
 		{
 			this.logger = loggerFactory.CreateLogger<UnitConverter>();
 			this.client = client;
 			this.client.MessageReceived += MessageReceived;
+			this.config = config;
 
 			logger.LogInformation("Initialized");
 		}
 
 		private async Task MessageReceived(SocketMessage message)
 		{
+			if (!config.Commands.EnableUnitAutoConversion) return;
 			if (message.Author.Id == client.CurrentUser.Id) return;
+			if (message.Content.StartsWith($"{config.Commands.Tag}")) return;
 			try
 			{
 				var matches = unitRegex.Matches(message.Content);

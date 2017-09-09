@@ -51,7 +51,8 @@
 		"RPS": {
 			"AcceptTimeout": 30,
 			"ChoiceTimeout": 60
-		}
+		},
+		"EnableUnitAutoConversion": true
 	},
 	"API": {
 		"DiscordLoginToken": "<your token here>",
