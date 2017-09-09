@@ -47,6 +47,7 @@ namespace BakaCore.MiscHandlers
 		{
 			if (!config.Commands.EnableUnitAutoConversion) return;
 			if (message.Author.Id == client.CurrentUser.Id) return;
+			if (message.Content.StartsWith($"{config.Commands.Tag}")) return;
 			try
 			{
 				var matches = unitRegex.Matches(message.Content);
