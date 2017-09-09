@@ -22,6 +22,7 @@ namespace BakaCore
 			public string Tag { get; set; }
 			public _Slots Slots { get; set; }
 			public _RPS RPS { get; set; }
+			public bool EnableUnitAutoConversion { get; set; }
 			public class _Slots
 			{
 				public int Count { get; set; }
