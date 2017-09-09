@@ -167,5 +167,8 @@ namespace BakaCore.Commands
 
 		[Command("wtf")]
 		public async Task WTFCommand(SocketMessage message) { await message.Channel.SendMessageAsync("", false, imageService.GetImageEmbed("wtf")); }
+
+		[Command("themoreyouknow")]
+		public async Task TheMoreYouKnowCommand(SocketMessage message) { await message.Channel.SendMessageAsync("", false, imageService.GetImageEmbed("themoreyouknow")); }
 	}
 }
