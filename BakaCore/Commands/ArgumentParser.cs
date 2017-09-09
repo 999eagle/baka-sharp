@@ -31,7 +31,10 @@ namespace BakaCore.Commands
 
 		(bool, object) ParseSimpleString(string input)
 		{
-			return (true, input);
+			if (input != null)
+				return (true, input);
+			else
+				return (false, null);
 		}
 		(bool, object) ParseSimpleInt(string input)
 		{
