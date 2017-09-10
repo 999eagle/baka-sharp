@@ -31,7 +31,7 @@ namespace BakaCore.MiscHandlers
 		private static string knownUnitRegex = String.Join("|", knownUnitRegexes.Select(t => $"(?<{t.groupName}>{t.regex})"));
 		private static string simpleValueRegex = $"((?<value>{numberRegex}) ?(?<unit>{knownUnitRegex}))";
 		private static string ftinValueRegex = $"((?<value_ft>{numberRegex}) ?(ft|') ?(?<value_in>{numberRegex})( ?(in|\"|''))?)";
-		private Regex unitRegex = new Regex($"{ftinValueRegex}|{simpleValueRegex}");
+		private Regex unitRegex = new Regex($"\\b({ftinValueRegex}|{simpleValueRegex})\\b");
 
 		public UnitConverter(ILoggerFactory loggerFactory, DiscordSocketClient client, Configuration config)
 		{
