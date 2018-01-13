@@ -14,7 +14,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Units\Units\Units.csproj" />
+    <ProjectReference Include="..\lib\Units\Units\Units.csproj" />
+    <ProjectReference Include="..\lib\YoutubeExtractor\YoutubeExtractor\YoutubeExtractor\YoutubeExtractor.csproj" />
   </ItemGroup>
 
 </Project>
