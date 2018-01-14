@@ -119,6 +119,9 @@ namespace BakaCore
 
 		private void Initialize()
 		{
+			logger.LogInformation("Setting library path");
+			NativeLibraryHandler.SetLibraryPath();
+
 			client = instanceServiceScope.ServiceProvider.GetRequiredService<DiscordSocketClient>();
 			client.Log += DispatchDiscordLogMessage;
 			client.Ready += Ready;
