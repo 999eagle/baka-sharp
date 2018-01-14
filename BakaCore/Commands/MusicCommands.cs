@@ -12,8 +12,8 @@ using Discord.WebSocket;
 
 namespace BakaCore.Commands
 {
-    class MusicCommands
-    {
+	class MusicCommands
+	{
 		private DiscordSocketClient client;
 		private IDictionary<ulong, (IAudioClient client, IAudioChannel channel)> audioClients = new Dictionary<ulong, (IAudioClient, IAudioChannel)>();
 
