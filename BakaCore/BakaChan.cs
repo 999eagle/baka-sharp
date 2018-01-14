@@ -10,6 +10,8 @@ using Microsoft.Extensions.Logging;
 using Discord;
 using Discord.WebSocket;
 using SteamWebAPI2.Interfaces;
+using Google.Apis.Services;
+using Google.Apis.YouTube.v3;
 
 namespace BakaCore
 {
@@ -60,7 +62,13 @@ namespace BakaCore
 					.AddScoped<Commands.ArgumentParser>()
 					.AddScoped<Data.IDataStore, Data.JsonStore>()
 					.AddScoped((_) => new Random())
-					.AddScoped<ImageService>();
+					.AddScoped<ImageService>()
+					.AddScoped((_) => new BaseClientService.Initializer()
+					{
+						ApiKey = config.API.GoogleAPIKey,
+						ApplicationName = "Baka-chan"
+					})
+					.AddScoped<YouTubeService>();
 
 				foreach (var handlerType in miscHandlers)
 				{

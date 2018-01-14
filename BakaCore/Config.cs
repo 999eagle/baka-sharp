@@ -48,6 +48,7 @@ namespace BakaCore
 		{
 			public string DiscordLoginToken { get; set; }
 			public string SteamWebAPIKey { get; set; }
+			public string GoogleAPIKey { get; set; }
 		}
 		public class Currency
 		{
