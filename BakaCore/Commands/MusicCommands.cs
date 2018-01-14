@@ -14,66 +14,72 @@ namespace BakaCore.Commands
 {
 	class MusicCommands
 	{
+		class GuildState
+		{
+			public IGuild guild;
+			public IAudioClient client;
+			public IAudioChannel channel;
+		}
+
 		private DiscordSocketClient client;
-		private IDictionary<ulong, (IAudioClient client, IAudioChannel channel)> audioClients = new Dictionary<ulong, (IAudioClient, IAudioChannel)>();
+		private IDictionary<ulong, GuildState> guildData = new Dictionary<ulong, GuildState>();
 
 		public MusicCommands(IServiceProvider services)
 		{
 			client = services.GetRequiredService<DiscordSocketClient>();
 		}
 
-		private (IAudioClient client, IAudioChannel channel) GetAudioClient(SocketMessage senderMessage)
+		private GuildState GetGuildState(SocketMessage senderMessage)
 		{
 			if (!(senderMessage.Channel is SocketGuildChannel channel))
 			{
-				return (null, null);
+				return null;
 			}
-			if (!audioClients.TryGetValue(channel.Guild.Id, out var client))
+			if (!guildData.TryGetValue(channel.Guild.Id, out var state))
 			{
-				return (null, null);
+				return null;
 			}
 			else
 			{
-				return client;
+				return state;
 			}
 		}
 
-		private async Task<(IAudioClient client, IAudioChannel channel)> StartOrGetAudioClient(SocketMessage senderMessage)
+		private async Task<GuildState> StartOrGetAudioClient(SocketMessage senderMessage)
 		{
-			var (audioClient, channel) = GetAudioClient(senderMessage);
-			if (audioClient != null && channel != null) return (audioClient, channel);
+			var state = GetGuildState(senderMessage);
+			if (state != null) return state;
 			if (!(senderMessage.Channel is SocketGuildChannel guildChannel))
 			{
 				await senderMessage.Channel.SendMessageAsync("Music can only be played on servers, sorry.");
-				return (null, null);
+				return null;
 			}
 			var newAudioChannel = guildChannel.Guild.Channels.FirstOrDefault(c => c is IAudioChannel && c.Users.Any(u => u.Id == senderMessage.Author.Id)) as IAudioChannel;
 			if (newAudioChannel == null)
 			{
 				await senderMessage.Channel.SendMessageAsync("Please join a voice channel first.");
-				return (null, null);
+				return null;
 			}
-			audioClient = await newAudioChannel.ConnectAsync();
-			audioClients[guildChannel.Guild.Id] = (audioClient, newAudioChannel);
-			return (audioClient, newAudioChannel);
+			guildData[guildChannel.Guild.Id] = state = new GuildState { guild = guildChannel.Guild, channel = newAudioChannel };
+			guildData[guildChannel.Guild.Id].client = await newAudioChannel.ConnectAsync();
+			return state;
 		}
 
 		[Command("play", Scope = CommandScope.Guild)]
 		public async Task PlayCommand(SocketMessage message, string text)
 		{
-			var audioClient = (await StartOrGetAudioClient(message)).client;
+			var state = await StartOrGetAudioClient(message);
+			if (state == null) return;
+			while (state.client != null) await Task.Delay(100);
 		}
 
-		[Command("stop")]
+		[Command("stop", Scope = CommandScope.Guild)]
 		public async Task StopCommand(SocketMessage message)
 		{
-			var audioData = GetAudioClient(message);
-			if (audioData.client == null) { return; }
-			await audioData.client.StopAsync();
-			if (audioData.channel is IGuildChannel guildChannel)
-			{
-				audioClients.Remove(guildChannel.GuildId);
-			}
+			var state = GetGuildState(message);
+			if (state == null || state.client == null) { return; }
+			await state.client.StopAsync();
+			guildData.Remove(state.guild.Id);
 		}
 	}
 }
