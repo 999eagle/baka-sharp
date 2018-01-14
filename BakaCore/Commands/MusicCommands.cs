@@ -9,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Discord;
 using Discord.Audio;
 using Discord.WebSocket;
+using Google.Apis.YouTube.v3;
 
 namespace BakaCore.Commands
 {
@@ -22,11 +23,13 @@ namespace BakaCore.Commands
 		}
 
 		private DiscordSocketClient client;
+		private YouTubeService youtubeService;
 		private IDictionary<ulong, GuildState> guildData = new Dictionary<ulong, GuildState>();
 
 		public MusicCommands(IServiceProvider services)
 		{
 			client = services.GetRequiredService<DiscordSocketClient>();
+			youtubeService = services.GetRequiredService<YouTubeService>();
 		}
 
 		private GuildState GetGuildState(SocketMessage senderMessage)
@@ -66,11 +69,39 @@ namespace BakaCore.Commands
 		}
 
 		[Command("play", Scope = CommandScope.Guild)]
-		public async Task PlayCommand(SocketMessage message, string text)
+		public async Task PlayCommand(SocketMessage message, [FullText] string text)
 		{
 			var state = await StartOrGetAudioClient(message);
 			if (state == null) return;
-			while (state.client != null) await Task.Delay(100);
+			while (state.client == null) await Task.Delay(100);
+
+			text = text.Replace('`', '\'');
+			await message.Channel.SendMessageAsync($"**Searching** :mag_right: `{text}`");
+			var request = youtubeService.Search.List("snippet");
+			request.Q = text;
+			request.MaxResults = 1;
+			request.Type = "video";
+			var response = await request.ExecuteAsync();
+			var result = response.Items.FirstOrDefault();
+			if (result == null)
+			{
+				await message.Channel.SendMessageAsync("Couldn't find anything for your search...");
+				return;
+			}
+			var detailRequest = youtubeService.Videos.List("contentDetails");
+			detailRequest.Id = result.Id.VideoId;
+			var detailResponse = await detailRequest.ExecuteAsync();
+			// using XmlConvert because that supports the ISO8601 format used in the response
+			var duration = System.Xml.XmlConvert.ToTimeSpan(detailResponse.Items[0].ContentDetails.Duration);
+			var embed = new EmbedBuilder()
+				.WithAuthor("Added to queue")
+				.WithTitle(result.Snippet.Title)
+				.WithUrl($"https://www.youtube.com/watch?v={result.Id.VideoId}")
+				.AddField("Channel", result.Snippet.ChannelTitle, true)
+				.AddField("Length", duration.ToString("hh:mm:ss"), true)
+				.WithThumbnailUrl(result.Snippet.Thumbnails.Default__.Url)
+				.Build();
+			await message.Channel.SendMessageAsync("", false, embed);
 		}
 
 		[Command("stop", Scope = CommandScope.Guild)]
