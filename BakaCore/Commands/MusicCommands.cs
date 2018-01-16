@@ -98,7 +98,7 @@ namespace BakaCore.Commands
 				.WithTitle(result.Snippet.Title)
 				.WithUrl($"https://www.youtube.com/watch?v={result.Id.VideoId}")
 				.AddField("Channel", result.Snippet.ChannelTitle, true)
-				.AddField("Length", duration.ToString("hh:mm:ss"), true)
+				.AddField("Length", duration.ToString(), true)
 				.WithThumbnailUrl(result.Snippet.Thumbnails.Default__.Url)
 				.Build();
 			await message.Channel.SendMessageAsync("", false, embed);
