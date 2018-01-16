@@ -19,6 +19,18 @@ namespace BakaNativeInterop.FFmpeg
 			fmtContext->pb = ioStream.ioContext;
 		}
 
+		public void SetOutputFormat(AVOutputFormat* format)
+		{
+			if (fmtContext->oformat != null) throw new InvalidOperationException("Output format already set");
+			fmtContext->oformat = format;
+		}
+		public void GuessOutputFormat(string shortName, string filename, string mimeType)
+		{
+			if (fmtContext->oformat != null) throw new InvalidOperationException("Output format already set");
+			fmtContext->oformat = ffmpeg.av_guess_format(shortName, filename, mimeType);
+			if (fmtContext->oformat == null) throw new FFmpegException(ffmpeg.AVERROR_UNKNOWN, "Failed to guess output format");
+		}
+
 		#region Disposing
 		protected override void Dispose(bool disposing)
 		{
