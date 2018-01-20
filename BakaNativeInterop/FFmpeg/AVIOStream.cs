@@ -12,6 +12,7 @@ namespace BakaNativeInterop.FFmpeg
 		Stream stream;
 		internal AVIOContext* ioContext;
 		const uint DefaultBufferSize = 4096;
+		GCHandle thisHandle;
 
 		public FileAccess Access { get; private set; }
 		public bool CanRead { get { return Access.HasFlag(FileAccess.Read); } }
@@ -46,7 +47,8 @@ namespace BakaNativeInterop.FFmpeg
 			{
 				readPacket = ReadPacket;
 			}
-			ioContext = ffmpeg.avio_alloc_context(ioBuffer, (int)DefaultBufferSize, writeFlag, null, readPacket, writePacket, null);
+			thisHandle = GCHandle.Alloc(this);
+			ioContext = ffmpeg.avio_alloc_context(ioBuffer, (int)DefaultBufferSize, writeFlag, (void*)GCHandle.ToIntPtr(thisHandle), readPacket, writePacket, null);
 			if (ioContext == null)
 			{
 				ffmpeg.av_free(ioBuffer);
@@ -54,19 +56,21 @@ namespace BakaNativeInterop.FFmpeg
 			}
 		}
 
-		private int ReadPacket(void* opaque, byte* buf, int bufSize)
+		private static int ReadPacket(void* opaque, byte* buf, int bufSize)
 		{
+			var avioStream = (AVIOStream)GCHandle.FromIntPtr((IntPtr)opaque).Target;
 			byte[] buffer = new byte[bufSize];
-			bufSize = stream.Read(buffer, 0, bufSize);
+			bufSize = avioStream.stream.Read(buffer, 0, bufSize);
 			Marshal.Copy(buffer, 0, (IntPtr)buf, bufSize);
 			return bufSize;
 		}
 
-		private int WritePacket(void* opaque, byte* buf, int bufSize)
+		private static int WritePacket(void* opaque, byte* buf, int bufSize)
 		{
+			var avioStream = (AVIOStream)GCHandle.FromIntPtr((IntPtr)opaque).Target;
 			byte[] buffer = new byte[bufSize];
 			Marshal.Copy((IntPtr)buf, buffer, 0, bufSize);
-			stream.Write(buffer, 0, bufSize);
+			avioStream.stream.Write(buffer, 0, bufSize);
 			return bufSize;
 		}
 
@@ -80,6 +84,7 @@ namespace BakaNativeInterop.FFmpeg
 				// Dispose managed resources
 			}
 			// Dispose unmanaged resources
+			thisHandle.Free();
 			if (ioContext != null)
 			{
 				ffmpeg.av_freep(&ioContext->buffer);
