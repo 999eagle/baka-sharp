@@ -132,31 +132,51 @@ namespace BakaNativeInterop.FFmpeg
 
 		void DecodeAudioFrame(AVFrame* frame, out bool dataPresent, ref bool finished)
 		{
+			int ret;
+			if ((ret = ffmpeg.avcodec_receive_frame(decoderContext, frame)) == 0)
+			{
+				// Last packet contained another frame we could read
+				dataPresent = true;
+				return;
+			}
+			dataPresent = false;
+			if (ret == ffmpeg.AVERROR_EOF)
+			{
+				// No more frames available in input
+				finished = true;
+				return;
+			}
+			if (ret != ffmpeg.AVERROR(ffmpeg.EAGAIN))
+			{
+				// All other errors will throw an exception
+				throw new FFmpegException(ret, "Failed to receive frame.");
+			}
+
+			// EAGAIN: no output available, new input must be sent
 			AVPacket packet;
 			InitPacket(&packet);
-
-			int ret;
 			if ((ret = ffmpeg.av_read_frame(input.fmtContext, &packet)) < 0)
 			{
 				if (ret == ffmpeg.AVERROR_EOF)
 				{
 					finished = true;
+					// Don't return to flush decoder with the empty packet
 				}
 				else
 				{
 					throw new FFmpegException(ret, "Failed to read frame.");
 				}
 			}
-			int dataPresentInt = 0;
-			if ((ret = ffmpeg.avcodec_decode_audio4(decoderContext, frame, &dataPresentInt, &packet)) < 0)
+			if ((ret = ffmpeg.avcodec_send_packet(decoderContext, &packet)) < 0)
 			{
 				ffmpeg.av_packet_unref(&packet);
-				throw new FFmpegException(ret, "Failed to decode frame.");
+				throw new FFmpegException(ret, "Failed to send data packet.");
 			}
-			dataPresent = (dataPresentInt != 0);
-			if (finished && dataPresent)
-				finished = false;
 			ffmpeg.av_packet_unref(&packet);
+			if (finished) return; // If we're finished, return now
+
+			// Not finished --> read next frame of current data
+			DecodeAudioFrame(frame, out dataPresent, ref finished);
 		}
 
 		void InitConvertedSamples(byte*** convertedInputSamples, int frameSize)
@@ -251,32 +271,66 @@ namespace BakaNativeInterop.FFmpeg
 
 		long pts = 0;
 
+		void WriteEncodedPacket(out bool dataPresent)
+		{
+			AVPacket packet;
+			InitPacket(&packet);
+			int ret;
+			dataPresent = true;
+			if ((ret = ffmpeg.avcodec_receive_packet(encoderContext, &packet)) < 0)
+			{
+				if (ret == ffmpeg.AVERROR(ffmpeg.EAGAIN))
+				{
+					// No output available, more input needed
+					return;
+				}
+				if (ret == ffmpeg.AVERROR_EOF)
+				{
+					// Encoder flushed, no more data available
+					dataPresent = false;
+					return;
+				}
+				throw new FFmpegException(ret, "Failed to read packet from encoder.");
+			}
+			if ((ret = ffmpeg.av_write_frame(output.fmtContext, &packet)) < 0)
+			{
+				ffmpeg.av_packet_unref(&packet);
+				throw new FFmpegException(ret, "Failed to write encoded packet to output.");
+			}
+			ffmpeg.av_packet_unref(&packet);
+		}
+
 		void EncodeAudioFrame(AVFrame* frame, out bool dataPresent)
 		{
-			AVPacket outputPacket;
-			InitPacket(&outputPacket);
 			if (frame != null)
 			{
 				frame->pts = pts;
 				pts += frame->nb_samples;
 			}
 			int ret;
-			int dataPresentInt;
-			if ((ret = ffmpeg.avcodec_encode_audio2(encoderContext, &outputPacket, frame, &dataPresentInt)) < 0)
+			do
 			{
-				ffmpeg.av_packet_unref(&outputPacket);
-				throw new FFmpegException(ret, "Failed to encode frame.");
-			}
-			dataPresent = (dataPresentInt != 0);
-			if (dataPresent)
-			{
-				if ((ret = ffmpeg.av_write_frame(output.fmtContext, &outputPacket)) < 0)
+				if ((ret = ffmpeg.avcodec_send_frame(encoderContext, frame)) < 0)
 				{
-					ffmpeg.av_packet_unref(&outputPacket);
-					throw new FFmpegException(ret, "Failed to write frame.");
+					if (ret == ffmpeg.AVERROR(ffmpeg.EAGAIN))
+					{
+						// No input accepted, output must be read first, then retry sending the frame
+						WriteEncodedPacket(out dataPresent);
+					}
+					else if (ret == ffmpeg.AVERROR_EOF)
+					{
+						// Encoder flushed, no new data accepted --> Read output and return
+						WriteEncodedPacket(out dataPresent);
+						return;
+					}
+					else
+					{
+						throw new FFmpegException(ret, "Failed to send frame to encoder.");
+					}
 				}
-				ffmpeg.av_packet_unref(&outputPacket);
-			}
+			} while (ret < 0);
+			// Frame sent, try writing output
+			WriteEncodedPacket(out dataPresent);
 		}
 
 		void LoadEncodeAndWrite()
