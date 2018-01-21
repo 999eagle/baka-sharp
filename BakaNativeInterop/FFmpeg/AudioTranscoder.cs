@@ -10,98 +10,23 @@ namespace BakaNativeInterop.FFmpeg
 {
 	public unsafe class AudioTranscoder : IDisposable
 	{
-		InputContext input;
-		OutputContext output;
-		AVCodecContext* decoderContext;
-		AVCodecContext* encoderContext;
+		AudioDecoder decoder;
+		AudioEncoder encoder;
 		SwrContext* resamplerContext;
 		AVAudioFifo* audioFifo;
 
-		public AudioTranscoder(InputContext inputContext, OutputContext outputContext, AVCodecID outputCodecId, int outputChannels = 2, long outputBitRate = 160000)
+		public AudioTranscoder(AudioDecoder audioDecoder, AudioEncoder audioEncoder)
 		{
-			int ret;
-			input = inputContext;
-			output = outputContext;
-			if (input.fmtContext->nb_streams != 1) throw new ArgumentException($"Expected one audio stream in input, but found {inputContext.fmtContext->nb_streams} streams.");
-			// Find input/output codecs
-			AVCodec* inputCodec;
-			AVCodec* outputCodec;
-			if ((inputCodec = ffmpeg.avcodec_find_decoder(input.fmtContext->streams[0]->codecpar->codec_id)) == null)
-			{
-				throw new FFmpegException(ffmpeg.AVERROR_UNKNOWN, "Couldn't find input codec.");
-			}
-			if ((outputCodec = ffmpeg.avcodec_find_encoder(outputCodecId)) == null)
-			{
-				throw new FFmpegException(ffmpeg.AVERROR_UNKNOWN, "Couldn't find output codec.");
-			}
-
-			// Create decoder context
-			if ((decoderContext = ffmpeg.avcodec_alloc_context3(inputCodec)) == null)
-			{
-				throw new FFmpegException(ffmpeg.AVERROR(ffmpeg.ENOMEM), "Couldn't allocate decoding context.");
-			}
-			if ((ret = ffmpeg.avcodec_parameters_to_context(decoderContext, input.fmtContext->streams[0]->codecpar)) < 0)
-			{
-				Dispose();
-				throw new FFmpegException(ret, "Failed to copy stream parameters to decoding context.");
-			}
-			if ((ret = ffmpeg.avcodec_open2(decoderContext, inputCodec, null)) < 0)
-			{
-				Dispose();
-				throw new FFmpegException(ret, "Couldn't open input codec.");
-			}
-
-			// Create output stream
-			AVStream* outputStream;
-			if ((outputStream = ffmpeg.avformat_new_stream(output.fmtContext, null)) == null)
-			{
-				Dispose();
-				throw new FFmpegException(ffmpeg.AVERROR(ffmpeg.ENOMEM), "Failed to create output stream.");
-			}
-			// Create encoder context
-			encoderContext = ffmpeg.avcodec_alloc_context3(outputCodec);
-			if (encoderContext == null)
-			{
-				Dispose();
-				throw new FFmpegException(ffmpeg.AVERROR(ffmpeg.ENOMEM), "Couldn't allocate encoding context.");
-			}
-			encoderContext->channels = outputChannels;
-			encoderContext->channel_layout = (ulong)ffmpeg.av_get_default_channel_layout(encoderContext->channels);
-			var supportedRates = Util.GetSupportedAudioSampleRates(outputCodec);
-			if (supportedRates == null || supportedRates.Contains(decoderContext->sample_rate))
-			{
-				encoderContext->sample_rate = decoderContext->sample_rate;
-			}
-			else
-			{
-				// Use closest available sample rate
-				encoderContext->sample_rate = supportedRates.OrderBy(rate => Math.Abs(rate - decoderContext->sample_rate)).First();
-			}
-			encoderContext->sample_fmt = outputCodec->sample_fmts[0];
-			encoderContext->bit_rate = outputBitRate;
-			outputStream->time_base.num = 1;
-			outputStream->time_base.den = encoderContext->sample_rate;
-			if ((output.fmtContext->oformat->flags & ffmpeg.AVFMT_GLOBALHEADER) != 0)
-			{
-				encoderContext->flags |= ffmpeg.AV_CODEC_FLAG_GLOBAL_HEADER;
-			}
-			if ((ret = ffmpeg.avcodec_open2(encoderContext, outputCodec, null)) < 0)
-			{
-				Dispose();
-				throw new FFmpegException(ret, "Couldn't open output codec.");
-			}
-			if ((ret = ffmpeg.avcodec_parameters_from_context(outputStream->codecpar, encoderContext)) < 0)
-			{
-				Dispose();
-				throw new FFmpegException(ret, "Failed to copy stream parameters from decoding context.");
-			}
+			decoder = audioDecoder;
+			encoder = audioEncoder;
 
 			// Create resampler context
-			if ((resamplerContext = ffmpeg.swr_alloc_set_opts(null, (long)encoderContext->channel_layout, encoderContext->sample_fmt, encoderContext->sample_rate, (long)decoderContext->channel_layout, decoderContext->sample_fmt, decoderContext->sample_rate, 0, null)) == null)
+			if ((resamplerContext = ffmpeg.swr_alloc_set_opts(null, (long)encoder.ChannelLayout, encoder.SampleFormat, encoder.SampleRate, (long)decoder.ChannelLayout, decoder.SampleFormat, decoder.SampleRate, 0, null)) == null)
 			{
 				Dispose();
 				throw new FFmpegException(ffmpeg.AVERROR(ffmpeg.ENOMEM), "Failed to allocate resampler context.");
 			}
+			int ret;
 			if ((ret = ffmpeg.swr_init(resamplerContext)) < 0)
 			{
 				Dispose();
@@ -109,7 +34,7 @@ namespace BakaNativeInterop.FFmpeg
 			}
 
 			// Create FIFO buffer
-			if ((audioFifo = ffmpeg.av_audio_fifo_alloc(encoderContext->sample_fmt, encoderContext->channels, 1)) == null)
+			if ((audioFifo = ffmpeg.av_audio_fifo_alloc(encoder.SampleFormat, encoder.Channels, 1)) == null)
 			{
 				Dispose();
 				throw new FFmpegException(ffmpeg.AVERROR(ffmpeg.ENOMEM), "Failed to allocate fifo buffer.");
@@ -131,19 +56,10 @@ namespace BakaNativeInterop.FFmpeg
 			}
 		}
 
-		void WriteOutputFileHeader()
-		{
-			int ret;
-			if ((ret = ffmpeg.avformat_write_header(output.fmtContext, null)) < 0)
-			{
-				throw new FFmpegException(ret, "Failed to write output file header.");
-			}
-		}
-
 		void DecodeAudioFrame(AVFrame* frame, out bool dataPresent, ref bool finished)
 		{
 			int ret;
-			if ((ret = ffmpeg.avcodec_receive_frame(decoderContext, frame)) == 0)
+			if ((ret = ffmpeg.avcodec_receive_frame(decoder.codecContext, frame)) == 0)
 			{
 				// Last packet contained another frame we could read
 				dataPresent = true;
@@ -165,7 +81,7 @@ namespace BakaNativeInterop.FFmpeg
 			// EAGAIN: no output available, new input must be sent
 			AVPacket packet;
 			InitPacket(&packet);
-			if ((ret = ffmpeg.av_read_frame(input.fmtContext, &packet)) < 0)
+			if ((ret = ffmpeg.av_read_frame(decoder.Input.fmtContext, &packet)) < 0)
 			{
 				if (ret == ffmpeg.AVERROR_EOF)
 				{
@@ -177,7 +93,7 @@ namespace BakaNativeInterop.FFmpeg
 					throw new FFmpegException(ret, "Failed to read frame.");
 				}
 			}
-			if ((ret = ffmpeg.avcodec_send_packet(decoderContext, &packet)) < 0)
+			if ((ret = ffmpeg.avcodec_send_packet(decoder.codecContext, &packet)) < 0)
 			{
 				ffmpeg.av_packet_unref(&packet);
 				throw new FFmpegException(ret, "Failed to send data packet.");
@@ -191,17 +107,17 @@ namespace BakaNativeInterop.FFmpeg
 
 		void InitConvertedSamples(byte*** convertedInputSamples, int frameSize)
 		{
-			*convertedInputSamples = (byte**)Marshal.AllocHGlobal(encoderContext->channels * sizeof(byte*));
+			*convertedInputSamples = (byte**)Marshal.AllocHGlobal(encoder.Channels * sizeof(byte*));
 			if (*convertedInputSamples == null)
 			{
 				throw new OutOfMemoryException("Failed to allocate converted input sample array.");
 			}
-			for (int i = 0; i < encoderContext->channels; i++)
+			for (int i = 0; i < encoder.Channels; i++)
 			{
 				(*convertedInputSamples)[i] = null;
 			}
 			int ret;
-			if ((ret = ffmpeg.av_samples_alloc(*convertedInputSamples, null, encoderContext->channels, frameSize, encoderContext->sample_fmt, 0)) < 0)
+			if ((ret = ffmpeg.av_samples_alloc(*convertedInputSamples, null, encoder.Channels, frameSize, encoder.SampleFormat, 0)) < 0)
 			{
 				ffmpeg.av_freep(&(*convertedInputSamples)[0]);
 				Marshal.FreeHGlobal((IntPtr)(*convertedInputSamples));
@@ -267,9 +183,9 @@ namespace BakaNativeInterop.FFmpeg
 				throw new FFmpegException(ffmpeg.AVERROR(ffmpeg.ENOMEM), "Failed to allocate output frame.");
 			}
 			(*frame)->nb_samples = frameSize;
-			(*frame)->channel_layout = encoderContext->channel_layout;
-			(*frame)->format = (int)encoderContext->sample_fmt;
-			(*frame)->sample_rate = encoderContext->sample_rate;
+			(*frame)->channel_layout = encoder.ChannelLayout;
+			(*frame)->format = (int)encoder.SampleFormat;
+			(*frame)->sample_rate = encoder.SampleRate;
 
 			int ret;
 			if ((ret = ffmpeg.av_frame_get_buffer(*frame, 0)) < 0)
@@ -287,7 +203,7 @@ namespace BakaNativeInterop.FFmpeg
 			InitPacket(&packet);
 			int ret;
 			dataPresent = true;
-			if ((ret = ffmpeg.avcodec_receive_packet(encoderContext, &packet)) < 0)
+			if ((ret = ffmpeg.avcodec_receive_packet(encoder.codecContext, &packet)) < 0)
 			{
 				if (ret == ffmpeg.AVERROR(ffmpeg.EAGAIN))
 				{
@@ -302,7 +218,7 @@ namespace BakaNativeInterop.FFmpeg
 				}
 				throw new FFmpegException(ret, "Failed to read packet from encoder.");
 			}
-			if ((ret = ffmpeg.av_write_frame(output.fmtContext, &packet)) < 0)
+			if ((ret = ffmpeg.av_write_frame(encoder.Output.fmtContext, &packet)) < 0)
 			{
 				ffmpeg.av_packet_unref(&packet);
 				throw new FFmpegException(ret, "Failed to write encoded packet to output.");
@@ -320,7 +236,7 @@ namespace BakaNativeInterop.FFmpeg
 			int ret;
 			do
 			{
-				if ((ret = ffmpeg.avcodec_send_frame(encoderContext, frame)) < 0)
+				if ((ret = ffmpeg.avcodec_send_frame(encoder.codecContext, frame)) < 0)
 				{
 					if (ret == ffmpeg.AVERROR(ffmpeg.EAGAIN))
 					{
@@ -346,7 +262,7 @@ namespace BakaNativeInterop.FFmpeg
 		void LoadEncodeAndWrite()
 		{
 			AVFrame* outputFrame;
-			int frameSize = Math.Min(ffmpeg.av_audio_fifo_size(audioFifo), encoderContext->frame_size);
+			int frameSize = Math.Min(ffmpeg.av_audio_fifo_size(audioFifo), encoder.FrameSize);
 			InitOutputFrame(&outputFrame, frameSize);
 			try
 			{
@@ -366,21 +282,12 @@ namespace BakaNativeInterop.FFmpeg
 			}
 		}
 
-		void WriteOutputFileTrailer()
-		{
-			int ret;
-			if ((ret = ffmpeg.av_write_trailer(output.fmtContext)) < 0)
-			{
-				throw new FFmpegException(ret, "Failed to write output file trailer.");
-			}
-		}
-
 		public void Transcode()
 		{
-			WriteOutputFileHeader();
+			encoder.Output.WriteFileHeader();
 			while (true)
 			{
-				int outputFrameSize = encoderContext->frame_size;
+				int outputFrameSize = encoder.FrameSize;
 				bool finished = false;
 				while (ffmpeg.av_audio_fifo_size(audioFifo) < outputFrameSize)
 				{
@@ -402,7 +309,7 @@ namespace BakaNativeInterop.FFmpeg
 					break;
 				}
 			}
-			WriteOutputFileTrailer();
+			encoder.Output.WriteFileTrailer();
 		}
 
 		#region Disposing
@@ -415,20 +322,6 @@ namespace BakaNativeInterop.FFmpeg
 				// Dispose managed resources
 			}
 			// Dispose unmanaged resources
-			if (decoderContext != null)
-			{
-				fixed (AVCodecContext** decoderContextPtr = &decoderContext)
-				{
-					ffmpeg.avcodec_free_context(decoderContextPtr);
-				}
-			}
-			if (encoderContext != null)
-			{
-				fixed (AVCodecContext** encoderContextPtr = &encoderContext)
-				{
-					ffmpeg.avcodec_free_context(encoderContextPtr);
-				}
-			}
 			if (resamplerContext != null)
 			{
 				fixed (SwrContext** resamplerContextPtr = &resamplerContext)

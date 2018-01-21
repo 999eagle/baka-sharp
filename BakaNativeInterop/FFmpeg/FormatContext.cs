@@ -14,6 +14,11 @@ namespace BakaNativeInterop.FFmpeg
 			return fmtContext;
 		}
 
+		public bool HasFlag(int flag)
+		{
+			return (fmtContext->flags & flag) != 0;
+		}
+
 		#region Disposing
 		protected bool disposed = false;
 		protected abstract void Dispose(bool disposing);

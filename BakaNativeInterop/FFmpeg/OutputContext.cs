@@ -31,6 +31,39 @@ namespace BakaNativeInterop.FFmpeg
 			if (fmtContext->oformat == null) throw new FFmpegException(ffmpeg.AVERROR_UNKNOWN, "Failed to guess output format");
 		}
 
+		public AVStream* CreateNewStream(AVCodec* codec = null)
+		{
+			var stream = ffmpeg.avformat_new_stream(fmtContext, codec);
+			if (stream == null)
+			{
+				throw new FFmpegException(ffmpeg.AVERROR(ffmpeg.ENOMEM), "Failed to create new stream.");
+			}
+			return stream;
+		}
+
+		public bool OutputFormatHasFlag(int formatFlag)
+		{
+			return (fmtContext->oformat->flags & formatFlag) != 0;
+		}
+
+		public void WriteFileHeader()
+		{
+			int ret;
+			if ((ret = ffmpeg.avformat_write_header(fmtContext, null)) < 0)
+			{
+				throw new FFmpegException(ret, "Failed to write file header.");
+			}
+		}
+
+		public void WriteFileTrailer()
+		{
+			int ret;
+			if ((ret = ffmpeg.av_write_trailer(fmtContext)) < 0)
+			{
+				throw new FFmpegException(ret, "Failed to write file trailer.");
+			}
+		}
+
 		#region Disposing
 		protected override void Dispose(bool disposing)
 		{
