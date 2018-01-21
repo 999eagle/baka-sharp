@@ -40,6 +40,16 @@ namespace BakaNativeInterop.FFmpeg
 			}
 		}
 
+		public bool ReadFramePacket(AVPacket* packet)
+		{
+			int ret = ffmpeg.av_read_frame(fmtContext, packet);
+			if (ret == 0)
+				return true;
+			if (ret == ffmpeg.AVERROR_EOF)
+				return false;
+			throw new FFmpegException(ret, "Failed to read frame.");
+		}
+
 		#region Disposing
 		protected override void Dispose(bool disposing)
 		{

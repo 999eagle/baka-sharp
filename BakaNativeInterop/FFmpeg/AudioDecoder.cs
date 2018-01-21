@@ -98,27 +98,19 @@ namespace BakaNativeInterop.FFmpeg
 				return true;
 			}
 
+			// No next frame available --> send a new input packet
 			AVPacket packet;
-			ffmpeg.av_init_packet(&packet);
-			packet.data = null;
-			packet.size = 0;
-			int ret;
-			if ((ret = ffmpeg.av_read_frame(Input.fmtContext, &packet)) < 0)
-			{
-				if (ret != ffmpeg.AVERROR_EOF)
-				{
-					throw new FFmpegException(ret, "Failed to read frame.");
-				}
-			}
+			Util.InitPacket(&packet);
 			try
 			{
+				Input.ReadFramePacket(&packet);
 				SendPacket(&packet);
 			}
 			finally
 			{
 				ffmpeg.av_packet_unref(&packet);
 			}
-
+			// Packet sent, try again to read a frame
 			return ReceiveFrame(frame);
 		}
 	}
