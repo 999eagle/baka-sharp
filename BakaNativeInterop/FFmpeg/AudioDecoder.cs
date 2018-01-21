@@ -8,6 +8,7 @@ namespace BakaNativeInterop.FFmpeg
 	public unsafe class AudioDecoder : CodecContext
 	{
 		public InputContext Input { get; }
+		public bool DecoderFlushed { get; private set; }
 		int streamIndex;
 
 		public AudioDecoder(InputContext inputContext, int streamIdx = -1)
@@ -63,6 +64,62 @@ namespace BakaNativeInterop.FFmpeg
 			catch (Exception) when (this.DisposeOnException())
 			{
 			}
+		}
+
+		private bool ReceiveFrame(AVFrame* frame)
+		{
+			int ret = ffmpeg.avcodec_receive_frame(codecContext, frame);
+			if (ret == 0)
+				return true;
+			if (ret == ffmpeg.AVERROR(ffmpeg.EAGAIN))
+				return false;
+			if (ret == ffmpeg.AVERROR_EOF)
+			{
+				DecoderFlushed = true;
+				return false;
+			}
+			throw new FFmpegException(ret, "Failed to receive frame from decoder.");
+		}
+
+		private bool SendPacket(AVPacket* packet)
+		{
+			int ret = ffmpeg.avcodec_send_packet(codecContext, packet);
+			if (ret == 0)
+				return true;
+			if (ret == ffmpeg.AVERROR(ffmpeg.EAGAIN) || ret == ffmpeg.AVERROR_EOF)
+				return false;
+			throw new FFmpegException(ret, "Failed to send packet to decoder.");
+		}
+
+		public bool GetNextAudioFrame(AVFrame* frame)
+		{
+			if (ReceiveFrame(frame))
+			{
+				return true;
+			}
+
+			AVPacket packet;
+			ffmpeg.av_init_packet(&packet);
+			packet.data = null;
+			packet.size = 0;
+			int ret;
+			if ((ret = ffmpeg.av_read_frame(Input.fmtContext, &packet)) < 0)
+			{
+				if (ret != ffmpeg.AVERROR_EOF)
+				{
+					throw new FFmpegException(ret, "Failed to read frame.");
+				}
+			}
+			try
+			{
+				SendPacket(&packet);
+			}
+			finally
+			{
+				ffmpeg.av_packet_unref(&packet);
+			}
+
+			return ReceiveFrame(frame);
 		}
 	}
 }

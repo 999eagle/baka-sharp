@@ -56,55 +56,6 @@ namespace BakaNativeInterop.FFmpeg
 			}
 		}
 
-		void DecodeAudioFrame(AVFrame* frame, out bool dataPresent, ref bool finished)
-		{
-			int ret;
-			if ((ret = ffmpeg.avcodec_receive_frame(decoder.codecContext, frame)) == 0)
-			{
-				// Last packet contained another frame we could read
-				dataPresent = true;
-				return;
-			}
-			dataPresent = false;
-			if (ret == ffmpeg.AVERROR_EOF)
-			{
-				// No more frames available in input
-				finished = true;
-				return;
-			}
-			if (ret != ffmpeg.AVERROR(ffmpeg.EAGAIN))
-			{
-				// All other errors will throw an exception
-				throw new FFmpegException(ret, "Failed to receive frame.");
-			}
-
-			// EAGAIN: no output available, new input must be sent
-			AVPacket packet;
-			InitPacket(&packet);
-			if ((ret = ffmpeg.av_read_frame(decoder.Input.fmtContext, &packet)) < 0)
-			{
-				if (ret == ffmpeg.AVERROR_EOF)
-				{
-					finished = true;
-					// Don't return to flush decoder with the empty packet
-				}
-				else
-				{
-					throw new FFmpegException(ret, "Failed to read frame.");
-				}
-			}
-			if ((ret = ffmpeg.avcodec_send_packet(decoder.codecContext, &packet)) < 0)
-			{
-				ffmpeg.av_packet_unref(&packet);
-				throw new FFmpegException(ret, "Failed to send data packet.");
-			}
-			ffmpeg.av_packet_unref(&packet);
-			if (finished) return; // If we're finished, return now
-
-			// Not finished --> read next frame of current data
-			DecodeAudioFrame(frame, out dataPresent, ref finished);
-		}
-
 		void InitConvertedSamples(byte*** convertedInputSamples, int frameSize)
 		{
 			*convertedInputSamples = (byte**)Marshal.AllocHGlobal(encoder.Channels * sizeof(byte*));
@@ -147,7 +98,7 @@ namespace BakaNativeInterop.FFmpeg
 			}
 		}
 
-		void ReadDecodeConvertAndStore(ref bool finished)
+		void ReadDecodeConvertAndStore()
 		{
 			AVFrame* inputFrame = null;
 			byte** convertedInputSamples = null;
@@ -155,8 +106,8 @@ namespace BakaNativeInterop.FFmpeg
 			try
 			{
 				InitInputFrame(&inputFrame);
-				DecodeAudioFrame(inputFrame, out bool dataPresent, ref finished);
-				if (finished && !dataPresent)
+				bool dataPresent = decoder.GetNextAudioFrame(inputFrame);
+				if (decoder.DecoderFlushed && !dataPresent)
 					return;
 				if (dataPresent)
 				{
@@ -288,13 +239,11 @@ namespace BakaNativeInterop.FFmpeg
 			while (true)
 			{
 				int outputFrameSize = encoder.FrameSize;
-				bool finished = false;
-				while (ffmpeg.av_audio_fifo_size(audioFifo) < outputFrameSize)
+				while (ffmpeg.av_audio_fifo_size(audioFifo) < outputFrameSize && !decoder.DecoderFlushed)
 				{
-					ReadDecodeConvertAndStore(ref finished);
-					if (finished)
-						break;
+					ReadDecodeConvertAndStore();
 				}
+				bool finished = false;
 				while (ffmpeg.av_audio_fifo_size(audioFifo) >= outputFrameSize || (finished && ffmpeg.av_audio_fifo_size(audioFifo) > 0))
 				{
 					LoadEncodeAndWrite();
