@@ -76,6 +76,7 @@ namespace BakaNativeInterop.FFmpeg
 			if (fmtContext != null)
 			{
 				ffmpeg.avformat_free_context(fmtContext);
+				fmtContext = null;
 			}
 			disposed = true;
 		}
