@@ -9,7 +9,6 @@ namespace BakaNativeInterop.FFmpeg
 	public unsafe class AudioEncoder : CodecContext
 	{
 		public OutputContext Output { get; }
-		int streamIndex;
 
 		public AudioEncoder(OutputContext outputContext, AVCodecID codecID, int outputSampleRate = -1, int outputChannels = 2, long outputBitRate = 160000)
 		{
