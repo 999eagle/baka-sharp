@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using FFmpeg.AutoGen;
@@ -66,7 +67,16 @@ namespace BakaNativeInterop.FFmpeg
 			}
 			encoderContext->channels = outputChannels;
 			encoderContext->channel_layout = (ulong)ffmpeg.av_get_default_channel_layout(encoderContext->channels);
-			encoderContext->sample_rate = decoderContext->sample_rate;
+			var supportedRates = Util.GetSupportedAudioSampleRates(outputCodec);
+			if (supportedRates == null || supportedRates.Contains(decoderContext->sample_rate))
+			{
+				encoderContext->sample_rate = decoderContext->sample_rate;
+			}
+			else
+			{
+				// Use closest available sample rate
+				encoderContext->sample_rate = supportedRates.OrderBy(rate => Math.Abs(rate - decoderContext->sample_rate)).First();
+			}
 			encoderContext->sample_fmt = outputCodec->sample_fmts[0];
 			encoderContext->bit_rate = outputBitRate;
 			outputStream->time_base.num = 1;
