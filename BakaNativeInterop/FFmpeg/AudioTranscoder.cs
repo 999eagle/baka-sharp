@@ -243,7 +243,7 @@ namespace BakaNativeInterop.FFmpeg
 				{
 					ReadDecodeConvertAndStore();
 				}
-				bool finished = false;
+				bool finished = decoder.DecoderFlushed;
 				while (ffmpeg.av_audio_fifo_size(audioFifo) >= outputFrameSize || (finished && ffmpeg.av_audio_fifo_size(audioFifo) > 0))
 				{
 					LoadEncodeAndWrite();
