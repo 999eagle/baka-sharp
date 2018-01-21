@@ -12,6 +12,8 @@ namespace BakaNativeInterop.FFmpeg
 		Stream stream;
 		internal AVIOContext* ioContext;
 		const uint DefaultBufferSize = 4096;
+		GCHandle readPacketCallbackHandle;
+		GCHandle writePacketCallbackHandle;
 
 		public FileAccess Access { get; private set; }
 		public bool CanRead { get { return Access.HasFlag(FileAccess.Read); } }
@@ -41,10 +43,12 @@ namespace BakaNativeInterop.FFmpeg
 			{
 				writeFlag = 1;
 				writePacket = WritePacket;
+				writePacketCallbackHandle = GCHandle.Alloc(writePacket);
 			}
 			if (CanRead)
 			{
 				readPacket = ReadPacket;
+				readPacketCallbackHandle = GCHandle.Alloc(readPacket);
 			}
 			ioContext = ffmpeg.avio_alloc_context(ioBuffer, (int)DefaultBufferSize, writeFlag, null, readPacket, writePacket, null);
 			if (ioContext == null)
@@ -80,6 +84,14 @@ namespace BakaNativeInterop.FFmpeg
 				// Dispose managed resources
 			}
 			// Dispose unmanaged resources
+			if (readPacketCallbackHandle.IsAllocated)
+			{
+				readPacketCallbackHandle.Free();
+			}
+			if (writePacketCallbackHandle.IsAllocated)
+			{
+				writePacketCallbackHandle.Free();
+			}
 			if (ioContext != null)
 			{
 				ffmpeg.av_freep(&ioContext->buffer);
