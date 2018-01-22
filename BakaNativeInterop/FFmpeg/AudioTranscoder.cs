@@ -12,7 +12,7 @@ namespace BakaNativeInterop.FFmpeg
 	{
 		AudioDecoder decoder;
 		AudioEncoder encoder;
-		SwrContext* resamplerContext;
+		Resampler resampler;
 		AVAudioFifo* audioFifo;
 
 		public AudioTranscoder(AudioDecoder audioDecoder, AudioEncoder audioEncoder)
@@ -20,18 +20,7 @@ namespace BakaNativeInterop.FFmpeg
 			decoder = audioDecoder;
 			encoder = audioEncoder;
 
-			// Create resampler context
-			if ((resamplerContext = ffmpeg.swr_alloc_set_opts(null, (long)encoder.ChannelLayout, encoder.SampleFormat, encoder.SampleRate, (long)decoder.ChannelLayout, decoder.SampleFormat, decoder.SampleRate, 0, null)) == null)
-			{
-				Dispose();
-				throw new FFmpegException(ffmpeg.AVERROR(ffmpeg.ENOMEM), "Failed to allocate resampler context.");
-			}
-			int ret;
-			if ((ret = ffmpeg.swr_init(resamplerContext)) < 0)
-			{
-				Dispose();
-				throw new FFmpegException(ret, "Failed to init resampler context.");
-			}
+			resampler = new Resampler(audioDecoder, audioEncoder);
 
 			// Create FIFO buffer
 			if ((audioFifo = ffmpeg.av_audio_fifo_alloc(encoder.SampleFormat, encoder.Channels, 1)) == null)
@@ -76,15 +65,6 @@ namespace BakaNativeInterop.FFmpeg
 			}
 		}
 
-		void ConvertSamples(byte** inputData, byte** convertedData, int frameSize, SwrContext* resamplerContext)
-		{
-			int ret;
-			if ((ret = ffmpeg.swr_convert(resamplerContext, convertedData, frameSize, inputData, frameSize)) < 0)
-			{
-				throw new FFmpegException(ret, "Failed to convert input samples.");
-			}
-		}
-
 		void AddSamplesToFifo(byte** convertedInputSamples, int frameSize)
 		{
 			int ret;
@@ -112,7 +92,7 @@ namespace BakaNativeInterop.FFmpeg
 				if (dataPresent)
 				{
 					InitConvertedSamples(&convertedInputSamples, inputFrame->nb_samples);
-					ConvertSamples(inputFrame->extended_data, convertedInputSamples, inputFrame->nb_samples, resamplerContext);
+					resampler.Resample(inputFrame->extended_data, convertedInputSamples, inputFrame->nb_samples);
 					AddSamplesToFifo(convertedInputSamples, inputFrame->nb_samples);
 				}
 			}
@@ -269,15 +249,9 @@ namespace BakaNativeInterop.FFmpeg
 			if (disposing)
 			{
 				// Dispose managed resources
+				resampler.Dispose();
 			}
 			// Dispose unmanaged resources
-			if (resamplerContext != null)
-			{
-				fixed (SwrContext** resamplerContextPtr = &resamplerContext)
-				{
-					ffmpeg.swr_free(resamplerContextPtr);
-				}
-			}
 			if (audioFifo != null)
 			{
 				ffmpeg.av_audio_fifo_free(audioFifo);
