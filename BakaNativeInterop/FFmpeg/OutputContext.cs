@@ -64,6 +64,24 @@ namespace BakaNativeInterop.FFmpeg
 			}
 		}
 
+		public void WriteFramePacket(AVPacket* packet)
+		{
+			int ret;
+			if ((ret = ffmpeg.av_write_frame(fmtContext, packet)) < 0)
+			{
+				throw new FFmpegException(ret, "Failed to write encoded packet to output.");
+			}
+		}
+
+		public void WriteInterleavedFramePacket(AVPacket* packet)
+		{
+			int ret;
+			if ((ret = ffmpeg.av_interleaved_write_frame(fmtContext, packet)) < 0)
+			{
+				throw new FFmpegException(ret, "Failed to write encoded packet to output.");
+			}
+		}
+
 		#region Disposing
 		protected override void Dispose(bool disposing)
 		{

@@ -9,6 +9,8 @@ namespace BakaNativeInterop.FFmpeg
 	public unsafe class AudioEncoder : CodecContext
 	{
 		public OutputContext Output { get; }
+		public bool EncoderFlushed { get; private set; }
+		public long PresentationTimestamp { get; private set; }
 
 		public AudioEncoder(OutputContext outputContext, AVCodecID codecID, int outputSampleRate = -1, int outputChannels = 2, long outputBitRate = 160000)
 		{
@@ -66,6 +68,56 @@ namespace BakaNativeInterop.FFmpeg
 			catch (Exception) when (this.DisposeOnException())
 			{
 			}
+		}
+
+		private bool SendFrame(AVFrame* frame)
+		{
+			int ret = ffmpeg.avcodec_send_frame(codecContext, frame);
+			if (ret == 0)
+				return true;
+			if (ret == ffmpeg.AVERROR(ffmpeg.EAGAIN) || ret == ffmpeg.AVERROR_EOF)
+				return false;
+			throw new FFmpegException(ret, "Failed to send frame to encoder.");
+		}
+
+		private bool ReceivePacket(AVPacket* packet)
+		{
+			int ret = ffmpeg.avcodec_receive_packet(codecContext, packet);
+			if (ret == 0)
+				return true;
+			if (ret == ffmpeg.AVERROR(ffmpeg.EAGAIN))
+				return false;
+			if (ret == ffmpeg.AVERROR_EOF)
+			{
+				EncoderFlushed = true;
+				return false;
+			}
+			throw new FFmpegException(ret, "Failed to receive packet from encoder.");
+		}
+
+		public bool WriteNextAudioFrame(AVFrame* frame)
+		{
+			if (frame != null)
+			{
+				frame->pts = PresentationTimestamp;
+				PresentationTimestamp += frame->nb_samples;
+			}
+			if (!SendFrame(frame))
+				return false;
+
+			AVPacket packet;
+			Util.InitPacket(&packet);
+			try
+			{
+				if (!ReceivePacket(&packet))
+					return false;
+				Output.WriteFramePacket(&packet);
+			}
+			finally
+			{
+				ffmpeg.av_packet_unref(&packet);
+			}
+			return true;
 		}
 	}
 }

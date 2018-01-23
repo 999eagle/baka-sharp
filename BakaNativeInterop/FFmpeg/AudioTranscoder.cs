@@ -30,18 +30,30 @@ namespace BakaNativeInterop.FFmpeg
 			}
 		}
 
-		void InitPacket(AVPacket* packet)
-		{
-			ffmpeg.av_init_packet(packet);
-			packet->data = null;
-			packet->size = 0;
-		}
-
 		void InitInputFrame(AVFrame** frame)
 		{
 			if ((*frame = ffmpeg.av_frame_alloc()) == null)
 			{
 				throw new FFmpegException(ffmpeg.AVERROR(ffmpeg.ENOMEM), "Failed to allocate input frame.");
+			}
+		}
+
+		void InitOutputFrame(AVFrame** frame, int frameSize)
+		{
+			if ((*frame = ffmpeg.av_frame_alloc()) == null)
+			{
+				throw new FFmpegException(ffmpeg.AVERROR(ffmpeg.ENOMEM), "Failed to allocate output frame.");
+			}
+			(*frame)->nb_samples = frameSize;
+			(*frame)->channel_layout = encoder.ChannelLayout;
+			(*frame)->format = (int)encoder.SampleFormat;
+			(*frame)->sample_rate = encoder.SampleRate;
+
+			int ret;
+			if ((ret = ffmpeg.av_frame_get_buffer(*frame, 0)) < 0)
+			{
+				ffmpeg.av_frame_free(frame);
+				throw new FFmpegException(ret, "Failed to allocate output frame samples.");
 			}
 		}
 
@@ -107,89 +119,6 @@ namespace BakaNativeInterop.FFmpeg
 			}
 		}
 
-		void InitOutputFrame(AVFrame** frame, int frameSize)
-		{
-			if ((*frame = ffmpeg.av_frame_alloc()) == null)
-			{
-				throw new FFmpegException(ffmpeg.AVERROR(ffmpeg.ENOMEM), "Failed to allocate output frame.");
-			}
-			(*frame)->nb_samples = frameSize;
-			(*frame)->channel_layout = encoder.ChannelLayout;
-			(*frame)->format = (int)encoder.SampleFormat;
-			(*frame)->sample_rate = encoder.SampleRate;
-
-			int ret;
-			if ((ret = ffmpeg.av_frame_get_buffer(*frame, 0)) < 0)
-			{
-				ffmpeg.av_frame_free(frame);
-				throw new FFmpegException(ret, "Failed to allocate output frame samples.");
-			}
-		}
-
-		long pts = 0;
-
-		void WriteEncodedPacket(out bool dataPresent)
-		{
-			AVPacket packet;
-			InitPacket(&packet);
-			int ret;
-			dataPresent = true;
-			if ((ret = ffmpeg.avcodec_receive_packet(encoder.codecContext, &packet)) < 0)
-			{
-				if (ret == ffmpeg.AVERROR(ffmpeg.EAGAIN))
-				{
-					// No output available, more input needed
-					return;
-				}
-				if (ret == ffmpeg.AVERROR_EOF)
-				{
-					// Encoder flushed, no more data available
-					dataPresent = false;
-					return;
-				}
-				throw new FFmpegException(ret, "Failed to read packet from encoder.");
-			}
-			if ((ret = ffmpeg.av_write_frame(encoder.Output.fmtContext, &packet)) < 0)
-			{
-				ffmpeg.av_packet_unref(&packet);
-				throw new FFmpegException(ret, "Failed to write encoded packet to output.");
-			}
-			ffmpeg.av_packet_unref(&packet);
-		}
-
-		void EncodeAudioFrame(AVFrame* frame, out bool dataPresent)
-		{
-			if (frame != null)
-			{
-				frame->pts = pts;
-				pts += frame->nb_samples;
-			}
-			int ret;
-			do
-			{
-				if ((ret = ffmpeg.avcodec_send_frame(encoder.codecContext, frame)) < 0)
-				{
-					if (ret == ffmpeg.AVERROR(ffmpeg.EAGAIN))
-					{
-						// No input accepted, output must be read first, then retry sending the frame
-						WriteEncodedPacket(out dataPresent);
-					}
-					else if (ret == ffmpeg.AVERROR_EOF)
-					{
-						// Encoder flushed, no new data accepted --> Read output and return
-						WriteEncodedPacket(out dataPresent);
-						return;
-					}
-					else
-					{
-						throw new FFmpegException(ret, "Failed to send frame to encoder.");
-					}
-				}
-			} while (ret < 0);
-			// Frame sent, try writing output
-			WriteEncodedPacket(out dataPresent);
-		}
-
 		void LoadEncodeAndWrite()
 		{
 			AVFrame* outputFrame;
@@ -205,7 +134,7 @@ namespace BakaNativeInterop.FFmpeg
 						throw new FFmpegException(ffmpeg.AVERROR_UNKNOWN, "Failed to read data from fifo buffer.");
 					}
 				}
-				EncodeAudioFrame(outputFrame, out bool dataWritten);
+				encoder.WriteNextAudioFrame(outputFrame);
 			}
 			finally
 			{
@@ -230,11 +159,10 @@ namespace BakaNativeInterop.FFmpeg
 				}
 				if (finished)
 				{
-					bool dataWritten;
 					do
 					{
-						EncodeAudioFrame(null, out dataWritten);
-					} while (dataWritten);
+						encoder.WriteNextAudioFrame(null);
+					} while (!encoder.EncoderFlushed);
 					break;
 				}
 			}
