@@ -64,10 +64,6 @@ namespace BakaNativeInterop.FFmpeg
 			{
 				throw new OutOfMemoryException("Failed to allocate converted input sample array.");
 			}
-			for (int i = 0; i < encoder.Channels; i++)
-			{
-				(*convertedInputSamples)[i] = null;
-			}
 			int ret;
 			if ((ret = ffmpeg.av_samples_alloc(*convertedInputSamples, null, encoder.Channels, frameSize, encoder.SampleFormat, 0)) < 0)
 			{
