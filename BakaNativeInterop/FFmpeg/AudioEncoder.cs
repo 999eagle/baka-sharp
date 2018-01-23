@@ -119,5 +119,21 @@ namespace BakaNativeInterop.FFmpeg
 			}
 			return true;
 		}
+
+		public void Flush()
+		{
+			if (EncoderFlushed) return;
+			SendFrame(null);
+			AVPacket packet;
+			while (!EncoderFlushed)
+			{
+				Util.InitPacket(&packet);
+				if (ReceivePacket(&packet))
+				{
+					Output.WriteFramePacket(&packet);
+				}
+				ffmpeg.av_packet_unref(&packet);
+			}
+		}
 	}
 }

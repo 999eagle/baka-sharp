@@ -159,10 +159,7 @@ namespace BakaNativeInterop.FFmpeg
 				}
 				if (finished)
 				{
-					do
-					{
-						encoder.WriteNextAudioFrame(null);
-					} while (!encoder.EncoderFlushed);
+					encoder.Flush();
 					break;
 				}
 			}
