@@ -10,18 +10,36 @@ namespace BakaNativeInterop.FFmpeg
 {
 	public class AudioTranscoder : IDisposable
 	{
-		AudioDecoder decoder;
+		AudioDecoder decoder = null;
 		AudioEncoder encoder;
-		Resampler resampler;
+		Resampler resampler = null;
 		AudioFifoBuffer buffer;
 
-		public AudioTranscoder(AudioDecoder audioDecoder, AudioEncoder audioEncoder)
+		public AudioTranscoder(AudioEncoder audioEncoder, AudioDecoder audioDecoder = null)
 		{
 			decoder = audioDecoder;
 			encoder = audioEncoder;
 
-			resampler = new Resampler(audioDecoder, audioEncoder);
+			if (audioDecoder != null)
+			{
+				resampler = new Resampler(audioDecoder, audioEncoder);
+			}
 			buffer = new AudioFifoBuffer(audioEncoder.SampleFormat, audioEncoder.Channels);
+		}
+
+		public void ChangeDecoder(AudioDecoder newDecoder)
+		{
+			if (resampler != null)
+			{
+				resampler.Dispose();
+				resampler = null;
+			}
+			decoder = newDecoder;
+
+			if (decoder != null)
+			{
+				resampler = new Resampler(decoder, encoder);
+			}
 		}
 
 		public int GetStoredBufferSize() => buffer.GetBufferSize();
@@ -38,26 +56,27 @@ namespace BakaNativeInterop.FFmpeg
 			buffer.WriteFrameToEncoder(encoder);
 		}
 
-		public void Transcode()
+		public void Transcode(bool flushEncoder = false)
 		{
-			encoder.Output.WriteFileHeader();
 			while (true)
 			{
 				while (!CanEncodeFrame() && !decoder.DecoderFlushed)
 				{
 					DecodeFrame();
 				}
-				while (CanEncodeFrame() || (decoder.DecoderFlushed && HasDataStored()))
+				while (CanEncodeFrame() || (flushEncoder && decoder.DecoderFlushed && HasDataStored()))
 				{
 					EncodeFrame();
 				}
 				if (decoder.DecoderFlushed)
 				{
-					encoder.Flush();
+					if (flushEncoder)
+					{
+						encoder.Flush();
+					}
 					break;
 				}
 			}
-			encoder.Output.WriteFileTrailer();
 		}
 
 		#region Disposing
@@ -68,7 +87,10 @@ namespace BakaNativeInterop.FFmpeg
 			if (disposing)
 			{
 				// Dispose managed resources
-				resampler.Dispose();
+				if (resampler != null)
+				{
+					resampler.Dispose();
+				}
 				buffer.Dispose();
 			}
 			// Dispose unmanaged resources
