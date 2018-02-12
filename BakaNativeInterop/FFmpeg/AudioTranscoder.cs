@@ -24,12 +24,16 @@ namespace BakaNativeInterop.FFmpeg
 			buffer = new AudioFifoBuffer(audioEncoder.SampleFormat, audioEncoder.Channels);
 		}
 
-		void ReadDecodeConvertAndStore()
+		public int GetStoredBufferSize() => buffer.GetBufferSize();
+		public bool CanEncodeFrame() => GetStoredBufferSize() >= encoder.FrameSize;
+		public bool HasDataStored() => GetStoredBufferSize() > 0;
+
+		public void DecodeFrame()
 		{
 			buffer.StoreFrameFromDecoder(decoder, resampler);
 		}
 
-		void LoadEncodeAndWrite()
+		public void EncodeFrame()
 		{
 			buffer.WriteFrameToEncoder(encoder);
 		}
@@ -39,17 +43,15 @@ namespace BakaNativeInterop.FFmpeg
 			encoder.Output.WriteFileHeader();
 			while (true)
 			{
-				int outputFrameSize = encoder.FrameSize;
-				while (buffer.GetBufferSize() < outputFrameSize && !decoder.DecoderFlushed)
+				while (!CanEncodeFrame() && !decoder.DecoderFlushed)
 				{
-					ReadDecodeConvertAndStore();
+					DecodeFrame();
 				}
-				bool finished = decoder.DecoderFlushed;
-				while (buffer.GetBufferSize() >= outputFrameSize || (finished && buffer.GetBufferSize() > 0))
+				while (CanEncodeFrame() || (decoder.DecoderFlushed && HasDataStored()))
 				{
-					LoadEncodeAndWrite();
+					EncodeFrame();
 				}
-				if (finished)
+				if (decoder.DecoderFlushed)
 				{
 					encoder.Flush();
 					break;
