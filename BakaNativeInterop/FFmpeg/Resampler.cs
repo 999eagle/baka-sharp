@@ -9,6 +9,10 @@ namespace BakaNativeInterop.FFmpeg
 	{
 		SwrContext* resamplerContext;
 
+		public int NumOutputChannels { get; }
+		public AVSampleFormat OutputSampleFormat { get; }
+		public int OutputSampleRate { get; }
+
 		public Resampler(CodecContext input, CodecContext output)
 		{
 			try
@@ -22,6 +26,9 @@ namespace BakaNativeInterop.FFmpeg
 				{
 					throw new FFmpegException(ret, "Failed to initialize resampler context.");
 				}
+				NumOutputChannels = output.Channels;
+				OutputSampleFormat = output.SampleFormat;
+				OutputSampleRate = output.SampleRate;
 			}
 			catch (Exception) when (this.DisposeOnException())
 			{
@@ -44,6 +51,12 @@ namespace BakaNativeInterop.FFmpeg
 			{
 				throw new FFmpegException(ret, "Failed to resample input.");
 			}
+		}
+
+		public void Resample(AudioSampleBuffer input, out AudioSampleBuffer output, int numSamples)
+		{
+			output = new AudioSampleBuffer(OutputSampleFormat, NumOutputChannels, numSamples);
+			Resample(input.sampleBuffer, output.sampleBuffer, numSamples);
 		}
 
 		#region Disposing
