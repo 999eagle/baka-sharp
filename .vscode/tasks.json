@@ -28,6 +28,16 @@
 				"${workspaceFolder}/ConsoleTest/ConsoleTest.csproj"
 			],
 			"problemMatcher": "$msCompile"
+		},
+		{
+			"label": "build service",
+			"command": "msbuild",
+			"type": "process",
+			"args": [
+				"/p:Configuration=Release",
+				"${workspaceFolder}/BakaService/BakaService.csproj"
+			],
+			"problemMatcher": "$msCompile"
 		}
 	]
 }
