@@ -14,16 +14,22 @@ namespace BakaCore
 
 		public static void SetLibraryPath()
 		{
+			var assemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+			var libPath = Path.Combine(assemblyPath, "lib");
 			if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
 			{
-				var assemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-				var libPath = Path.Combine(assemblyPath, "lib", Environment.Is64BitProcess ? "x64" : "Win32");
+				libPath = Path.Combine(libPath, Environment.Is64BitProcess ? "x64" : "Win32");
 				SetDllDirectory(libPath);
 				if (Marshal.GetLastWin32Error() != 0)
 				{
 					Marshal.ThrowExceptionForHR(Marshal.GetHRForLastWin32Error());
 				}
 			}
+			else if(RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+			{
+				libPath = Path.Combine(libPath, Environment.Is64BitProcess ? "linux_x64" : "linux_x86");
+			}
+			BakaNativeInterop.FFmpeg.FFmpeg.SetLibraryPath(libPath);
 		}
 	}
 }
