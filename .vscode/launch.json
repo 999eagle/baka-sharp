@@ -1,0 +1,40 @@
+{
+   // Use IntelliSense to find out which attributes exist for C# debugging
+   // Use hover for the description of the existing attributes
+   // For further information visit https://github.com/OmniSharp/omnisharp-vscode/blob/master/debugger-launchjson.md
+   "version": "0.2.0",
+   "configurations": [
+		{
+			"name": ".NET Core Launch (console, debug)",
+			"type": "coreclr",
+			"request": "launch",
+			"preLaunchTask": "build (debug)",
+			"program": "${workspaceFolder}/ConsoleTest/bin/Debug/netcoreapp2.0/ConsoleTest.dll",
+			"args": [],
+			"cwd": "${workspaceFolder}/ConsoleTest",
+			// For more information about the 'console' field, see https://github.com/OmniSharp/omnisharp-vscode/blob/master/debugger-launchjson.md#console-terminal-window
+			"console": "integratedTerminal",
+			"stopAtEntry": false,
+			"internalConsoleOptions": "openOnSessionStart"
+		},
+		{
+			"name": ".NET Core Launch (console, release)",
+			"type": "coreclr",
+			"request": "launch",
+			"preLaunchTask": "build (release)",
+			"program": "${workspaceFolder}/ConsoleTest/bin/Release/netcoreapp2.0/ConsoleTest.dll",
+			"args": [],
+			"cwd": "${workspaceFolder}/ConsoleTest",
+			// For more information about the 'console' field, see https://github.com/OmniSharp/omnisharp-vscode/blob/master/debugger-launchjson.md#console-terminal-window
+			"console": "integratedTerminal",
+			"stopAtEntry": false,
+			"internalConsoleOptions": "openOnSessionStart"
+		},
+		{
+			"name": ".NET Core Attach",
+			"type": "coreclr",
+			"request": "attach",
+			"processId": "${command:pickProcess}"
+		}
+	,]
+}

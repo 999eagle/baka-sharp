@@ -1,0 +1,33 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "build (debug)",
+			"command": "dotnet",
+			"type": "process",
+			"args": [
+				"build",
+				"-f",
+				"netcoreapp2.0",
+				"-c",
+				"Debug",
+				"${workspaceFolder}/ConsoleTest/ConsoleTest.csproj"
+			],
+			"problemMatcher": "$msCompile"
+		},
+		{
+			"label": "build (release)",
+			"command": "dotnet",
+			"type": "process",
+			"args": [
+				"build",
+				"-f",
+				"netcoreapp2.0",
+				"-c",
+				"Release",
+				"${workspaceFolder}/ConsoleTest/ConsoleTest.csproj"
+			],
+			"problemMatcher": "$msCompile"
+		}
+	]
+}
