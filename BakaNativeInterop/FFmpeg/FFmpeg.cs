@@ -8,9 +8,11 @@ namespace BakaNativeInterop.FFmpeg
 {
 	public static class FFmpeg
 	{
-		public static void InitializeFFmpeg()
+		public static void SetLibraryPath(string libraryRootPath = null)
 		{
-			ffmpeg.av_register_all();
+			ffmpeg.RootPath = libraryRootPath ?? string.Empty;
 		}
+
+		public static string GetFFmpegVersionInfo() => ffmpeg.av_version_info();
 	}
 }
