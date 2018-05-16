@@ -97,6 +97,10 @@ namespace BakaCore.Commands
 			int parsedInputCount = 0;
 			switch (info)
 			{
+				case ParameterInfo arg when (arg.ParameterType == typeof(string) && arg.GetCustomAttribute<FullTextAttribute>() != null):
+					parsedObject = String.Join(" ", inputs);
+					parsedInputCount = inputs.Count();
+					break;
 				case ParameterInfo arg when (simpleParseTypes.ContainsKey(arg.ParameterType)):
 					(bool success, object parseResult) = simpleParseTypes[arg.ParameterType](input);
 					if (success)
