@@ -129,7 +129,14 @@ namespace BakaCore.Commands
 		public async Task SlapCommand(SocketMessage message, [Optional]SocketUser user)
 		{
 			user = user ?? message.Author;
-			await message.Channel.SendMessageAsync($"*Baka-chan slaps {user.Mention}*", false, imageService.GetImageEmbed("slap"));
+			if (user.Id == client.CurrentUser.Id)
+			{
+				await message.Channel.SendMessageAsync($"*Baka-chan slaps herself*", false, imageService.GetImageEmbed("slap_self"));
+			}
+			else
+			{
+				await message.Channel.SendMessageAsync($"*Baka-chan slaps {user.Mention}*", false, imageService.GetImageEmbed("slap"));
+			}
 		}
 
 		[Command("f", Help = "Pay respects.")]

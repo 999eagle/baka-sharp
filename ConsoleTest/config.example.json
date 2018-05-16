@@ -79,6 +79,9 @@
 			"slap": {
 				"FileName": "slap.gif"
 			},
+			"slap_self": {
+				"FileName": "slap_self.gif"
+			},
 			"disgust": {
 				"FileName": "disgust_single.gif"
 			},
