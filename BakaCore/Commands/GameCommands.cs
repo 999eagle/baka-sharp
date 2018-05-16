@@ -199,8 +199,8 @@ namespace BakaCore.Commands
 				};
 				var choiceString = String.Join(", ", validChoices.Take(validChoices.Count - 1)) + " or " + validChoices.Last();
 				await channel.SendMessageAsync($"{user.Mention} has accepted {message.Author}'s challenge. Both players, please send me your choice ({choiceString}) via DM within the next {config.Commands.RPS.ChoiceTimeout} seconds.");
-				var player1Task = channel.WaitForMessageAsync(client, TimeSpan.FromSeconds(config.Commands.RPS.ChoiceTimeout), CreateMessageFilter(message.Author));
-				var player2Task = channel.WaitForMessageAsync(client, TimeSpan.FromSeconds(config.Commands.RPS.ChoiceTimeout), CreateMessageFilter(user));
+				var player1Task = client.WaitForMessageAsync(TimeSpan.FromSeconds(config.Commands.RPS.ChoiceTimeout), CreateMessageFilter(message.Author));
+				var player2Task = client.WaitForMessageAsync(TimeSpan.FromSeconds(config.Commands.RPS.ChoiceTimeout), CreateMessageFilter(user));
 				var player1Msg = await player1Task;
 				var player2Msg = await player2Task;
 				if (player1Msg == null || player2Msg == null)

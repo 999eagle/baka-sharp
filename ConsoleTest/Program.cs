@@ -18,7 +18,6 @@ namespace ConsoleTest
 			configBuilder.AddJsonFile("config.json");
 			config = configBuilder.Build();
 			AsyncMain(args).Wait();
-			Console.ReadLine();
 		}
 
 		static async Task AsyncMain(string[] args)

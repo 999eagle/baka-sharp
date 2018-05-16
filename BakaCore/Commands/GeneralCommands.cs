@@ -8,6 +8,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Discord;
 using Discord.WebSocket;
 
+using Expressions;
+
 namespace BakaCore.Commands
 {
 	class GeneralCommands
@@ -117,6 +119,21 @@ namespace BakaCore.Commands
 			}
 		}
 
+		[Command("calc", Help = "Calculate a mathematical expression.")]
+		public async Task CalcCommand(SocketMessage message, [FullText]string expression)
+		{
+			var expr = new InfixExpression(expression);
+			try
+			{
+				var value = expr.Evaluate(null);
+				await message.Channel.SendMessageAsync($"{value}");
+			}
+			catch (Exception)
+			{
+				await message.Channel.SendMessageAsync("Sorry, I can't calculate that");
+			}
+		}
+
 		[Command("poke", Help = "Poke someone.")]
 		public async Task PokeCommand(SocketMessage message, [Optional]SocketUser user)
 		{
@@ -129,7 +146,14 @@ namespace BakaCore.Commands
 		public async Task SlapCommand(SocketMessage message, [Optional]SocketUser user)
 		{
 			user = user ?? message.Author;
-			await message.Channel.SendMessageAsync($"*Baka-chan slaps {user.Mention}*", false, imageService.GetImageEmbed("slap"));
+			if (user.Id == client.CurrentUser.Id)
+			{
+				await message.Channel.SendMessageAsync($"*Baka-chan slaps herself*", false, imageService.GetImageEmbed("slap_self"));
+			}
+			else
+			{
+				await message.Channel.SendMessageAsync($"*Baka-chan slaps {user.Mention}*", false, imageService.GetImageEmbed("slap"));
+			}
 		}
 
 		[Command("f", Help = "Pay respects.")]

@@ -26,6 +26,7 @@
   <ItemGroup>
     <ProjectReference Include="..\BakaNativeInterop\BakaNativeInterop.csproj" />
     <ProjectReference Include="..\lib\Units\Units\Units.csproj" />
+    <ProjectReference Include="..\lib\Expressions\Expressions\Expressions.csproj" />
     <ProjectReference Include="..\lib\YoutubeExtractor\YoutubeExtractor\YoutubeExtractor\YoutubeExtractor.csproj" />
   </ItemGroup>
 
