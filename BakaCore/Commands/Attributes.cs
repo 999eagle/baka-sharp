@@ -28,4 +28,9 @@ namespace BakaCore.Commands
 			Separator = separator;
 		}
 	}
+
+	[AttributeUsage(AttributeTargets.Parameter)]
+	class FullTextAttribute : Attribute
+	{
+	}
 }

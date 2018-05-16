@@ -1,3 +1,6 @@
-[submodule "Units"]
-	path = Units
+[submodule "lib/Units"]
+	path = lib/Units
 	url = https://github.com/999eagle/Units.git
+[submodule "lib/Expressions"]
+	path = lib/Expressions
+	url = https://github.com/999eagle/Expressions.git
