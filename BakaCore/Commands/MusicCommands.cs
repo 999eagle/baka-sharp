@@ -1,195 +1,81 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 
 using Discord;
-using Discord.Audio;
 using Discord.WebSocket;
 using Google.Apis.YouTube.v3;
-using YoutubeExplode;
-using YoutubeExplode.Models.MediaStreams;
+using Concentus.Structs;
+using Concentus.Oggfile;
 
-using BakaNativeInterop.FFmpeg;
+using BakaCore.Music;
 
 namespace BakaCore.Commands
 {
 	class MusicCommands
 	{
-		class GuildState
-		{
-			public IGuild guild;
-			public IAudioClient client;
-			public IAudioChannel channel;
-			public Queue<string> queuedVideoIds;
-			public Task playerTask;
-			public CancellationTokenSource tokenSource;
-
-			public GuildState()
-			{
-				tokenSource = new CancellationTokenSource();
-				queuedVideoIds = new Queue<string>();
-			}
-		}
-
+		private ILogger logger;
+		private ILoggerFactory loggerFactory;
 		private DiscordSocketClient client;
 		private YouTubeService youtubeService;
-		private IDictionary<ulong, GuildState> guildData = new Dictionary<ulong, GuildState>();
+		private IDictionary<ulong, Player> players = new Dictionary<ulong, Player>();
 
 		public MusicCommands(IServiceProvider services)
 		{
+			loggerFactory = services.GetRequiredService<ILoggerFactory>();
+			logger = loggerFactory.CreateLogger<MusicCommands>();
 			client = services.GetRequiredService<DiscordSocketClient>();
 			youtubeService = services.GetRequiredService<YouTubeService>();
-			BakaNativeInterop.FFmpeg.FFmpeg.InitializeFFmpeg();
 		}
 
-		private GuildState GetGuildState(SocketMessage senderMessage)
+		private Player GetPlayer(SocketMessage senderMessage)
 		{
 			if (!(senderMessage.Channel is SocketGuildChannel channel))
 			{
 				return null;
 			}
-			if (!guildData.TryGetValue(channel.Guild.Id, out var state))
+			if (!players.TryGetValue(channel.Guild.Id, out var player))
 			{
 				return null;
 			}
 			else
 			{
-				return state;
+				return player;
 			}
 		}
 
-		private async Task<GuildState> StartOrGetAudioClient(SocketMessage senderMessage)
+		private async Task<Player> GetOrCreatePlayer(SocketMessage senderMessage, IVoiceChannel newChannel = null)
 		{
-			var state = GetGuildState(senderMessage);
-			if (state != null) return state;
-			if (!(senderMessage.Channel is SocketGuildChannel guildChannel))
+			newChannel = newChannel ?? (senderMessage.Author as IGuildUser)?.VoiceChannel;
+			var player = GetPlayer(senderMessage);
+
+			if (player == null)
 			{
-				await senderMessage.Channel.SendMessageAsync("Music can only be played on servers, sorry.");
-				return null;
-			}
-			var newAudioChannel = guildChannel.Guild.Channels.FirstOrDefault(c => c is IAudioChannel && c.Users.Any(u => u.Id == senderMessage.Author.Id)) as IAudioChannel;
-			if (newAudioChannel == null)
-			{
-				await senderMessage.Channel.SendMessageAsync("Please join a voice channel first.");
-				return null;
-			}
-			guildData[guildChannel.Guild.Id] = state = new GuildState { guild = guildChannel.Guild, channel = newAudioChannel };
-			guildData[guildChannel.Guild.Id].client = await newAudioChannel.ConnectAsync();
-			state.playerTask = Task.Run(() => PlayMusic(state), state.tokenSource.Token);
-			return state;
-		}
-
-		private async Task PlayMusic(GuildState state)
-		{
-			var cancellationToken = state.tokenSource.Token;
-			cancellationToken.ThrowIfCancellationRequested();
-
-			AudioOutStream discordStream = null;
-			AVIOStream outputStream = null;
-			OutputContext outputContext = null;
-			AudioEncoder encoder = null;
-
-			MediaStream youtubeStream = null;
-			AVIOStream inputStream = null;
-			InputContext inputContext = null;
-			AudioDecoder decoder = null;
-
-			AudioTranscoder transcoder = null;
-			try
-			{
-				discordStream = state.client.CreateOpusStream();
-				outputStream = new AVIOStream(discordStream, System.IO.FileAccess.Write);
-				outputContext = new OutputContext(outputStream);
-				outputContext.GuessOutputFormat(null, ".ogg", "");
-				encoder = new AudioEncoder(outputContext, FFmpeg.AutoGen.AVCodecID.AV_CODEC_ID_OPUS, 48000);
-
-				transcoder = new AudioTranscoder(encoder);
-				outputContext.WriteFileHeader();
-
-				var client = new YoutubeClient();
-
-				string nowPlayingVideoId = null;
-				while (true)
+				if (newChannel == null)
 				{
-					if (decoder == null || decoder.DecoderFlushed)
-					{
-						if (decoder != null)
-						{
-							// clean up resources from last stream
-							transcoder.ChangeDecoder(null);
-							decoder?.Dispose();
-							inputContext?.Dispose();
-							inputStream?.Dispose();
-							youtubeStream?.Dispose();
-							nowPlayingVideoId = null;
-							decoder = null;
-						}
-						if (state.queuedVideoIds.Any())
-						{
-							// start next stream in queue
-							nowPlayingVideoId = state.queuedVideoIds.Dequeue();
-							var info = await client.GetVideoMediaStreamInfosAsync(nowPlayingVideoId);
-							var audio = info.Audio.WithHighestBitrate();
-							youtubeStream = await client.GetMediaStreamAsync(audio);
-							inputStream = new AVIOStream(youtubeStream, System.IO.FileAccess.Read);
-							inputContext = new InputContext(inputStream);
-							decoder = new AudioDecoder(inputContext);
-							transcoder.ChangeDecoder(decoder);
-						}
-						else
-						{
-							await Task.Delay(100);
-						}
-					}
-					else
-					{
-						// decoder available --> stream stuff!
-						while (!transcoder.CanEncodeFrame() && !decoder.DecoderFlushed && !cancellationToken.IsCancellationRequested)
-						{
-							transcoder.DecodeFrame();
-						}
-						while (transcoder.CanEncodeFrame() && !cancellationToken.IsCancellationRequested)
-						{
-							transcoder.EncodeFrame();
-						}
-					}
-					if (cancellationToken.IsCancellationRequested)
-					{
-						cancellationToken.ThrowIfCancellationRequested();
-					}
+					await senderMessage.Channel.SendMessageAsync("You need to join a voice channel first.");
+					return null;
 				}
+				player = new Player(newChannel, loggerFactory);
+				players[player.Guild.Id] = player;
 			}
-			finally
+			else
 			{
-				transcoder?.ChangeDecoder(null);
-				transcoder?.Dispose();
-
-				decoder?.Dispose();
-				inputContext?.Dispose();
-				inputStream?.Dispose();
-				youtubeStream?.Dispose();
-
-				encoder?.Dispose();
-				outputContext?.Dispose();
-				outputStream?.Dispose();
-				discordStream?.Dispose();
-				await state.client.StopAsync();
-				guildData.Remove(state.guild.Id);
+				// TODO: leave channel and join new channel
 			}
+			return player;
 		}
 
 		[Command("play", Scope = CommandScope.Guild)]
 		public async Task PlayCommand(SocketMessage message, [FullText] string text)
 		{
-			var state = await StartOrGetAudioClient(message);
-			if (state == null) return;
-			while (state.client == null) await Task.Delay(100);
-
 			text = text.Replace('`', '\'');
 			await message.Channel.SendMessageAsync($"**Searching** :mag_right: `{text}`");
 			var request = youtubeService.Search.List("snippet");
@@ -204,7 +90,17 @@ namespace BakaCore.Commands
 				return;
 			}
 
-			state.queuedVideoIds.Enqueue(result.Id.VideoId);
+			var player = await GetOrCreatePlayer(message);
+			if (player.PlayerState == PlayerState.Disconnected)
+			{
+				var playlist = new Playlist();
+				playlist.songs.Add(result.Id.VideoId);
+				player.Start(playlist);
+			}
+			else
+			{
+				// TODO: Enqueue song
+			}
 
 			var detailRequest = youtubeService.Videos.List("contentDetails");
 			detailRequest.Id = result.Id.VideoId;
@@ -225,9 +121,9 @@ namespace BakaCore.Commands
 		[Command("stop", Scope = CommandScope.Guild)]
 		public async Task StopCommand(SocketMessage message)
 		{
-			var state = GetGuildState(message);
-			if (state == null) { state.tokenSource.Cancel(); }
-			await state.playerTask;
+			var player = GetPlayer(message);
+			if (player == null || player.PlayerState == PlayerState.Disconnected) return;
+			await player.Stop();
 		}
 	}
 }

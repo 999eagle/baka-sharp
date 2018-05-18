@@ -7,3 +7,6 @@
 [submodule "lib/Expressions"]
 	path = lib/Expressions
 	url = https://github.com/999eagle/Expressions.git
+[submodule "lib/concentus.oggfile"]
+	path = lib/concentus.oggfile
+	url = https://github.com/999eagle/concentus.oggfile.git

@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
@@ -13,7 +13,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Discord.Net" Version="1.0.2" />
+    <PackageReference Include="Discord.Net" Version="2.0.0-beta" />
     <PackageReference Include="Google.Apis.YouTube.v3" Version="1.32.0.1079" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="2.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="2.0.0" />
@@ -28,6 +28,7 @@
     <ProjectReference Include="..\lib\Units\Units\Units.csproj" />
     <ProjectReference Include="..\lib\Expressions\Expressions\Expressions.csproj" />
     <ProjectReference Include="..\lib\YoutubeExtractor\YoutubeExtractor\YoutubeExtractor\YoutubeExtractor.csproj" />
+    <ProjectReference Include="..\lib\concentus.oggfile\Concentus.Oggfile\Concentus.Oggfile.csproj" />
   </ItemGroup>
 
   <ItemGroup>

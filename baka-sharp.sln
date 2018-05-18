@@ -1,4 +1,4 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.26823.1
@@ -16,6 +16,10 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "lib", "lib", "{36E21ED9-D71A-4563-8C13-B6BD576A2248}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BakaNativeInterop", "BakaNativeInterop\BakaNativeInterop.csproj", "{511681E0-A442-4C5E-AE1E-D7B040A2DA66}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Expressions", "lib\Expressions\Expressions\Expressions.csproj", "{01892391-4D5E-486B-9C67-F6752C7374D7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Concentus.Oggfile", "lib\concentus.oggfile\Concentus.Oggfile\Concentus.Oggfile.csproj", "{E52F5278-AA44-44C5-803C-2DA337FF87A4}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -47,6 +51,14 @@ Global
 		{511681E0-A442-4C5E-AE1E-D7B040A2DA66}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{511681E0-A442-4C5E-AE1E-D7B040A2DA66}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{511681E0-A442-4C5E-AE1E-D7B040A2DA66}.Release|Any CPU.Build.0 = Release|Any CPU
+		{01892391-4D5E-486B-9C67-F6752C7374D7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{01892391-4D5E-486B-9C67-F6752C7374D7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{01892391-4D5E-486B-9C67-F6752C7374D7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{01892391-4D5E-486B-9C67-F6752C7374D7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E52F5278-AA44-44C5-803C-2DA337FF87A4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E52F5278-AA44-44C5-803C-2DA337FF87A4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E52F5278-AA44-44C5-803C-2DA337FF87A4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E52F5278-AA44-44C5-803C-2DA337FF87A4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -54,6 +66,8 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{3A23FC1E-BCB0-4EE0-B127-73F0F7F104E0} = {36E21ED9-D71A-4563-8C13-B6BD576A2248}
 		{20255C25-7300-4A3C-BA08-413D00CD79FD} = {36E21ED9-D71A-4563-8C13-B6BD576A2248}
+		{01892391-4D5E-486B-9C67-F6752C7374D7} = {36E21ED9-D71A-4563-8C13-B6BD576A2248}
+		{E52F5278-AA44-44C5-803C-2DA337FF87A4} = {36E21ED9-D71A-4563-8C13-B6BD576A2248}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {A60A4FF0-3EDF-475B-94C1-F244D427401D}
