@@ -40,7 +40,6 @@ namespace BakaCore.Music
 
 		private ILogger logger;
 		private CancellationTokenSource tokenSource;
-		private YouTubeDownloader youtubeDownloader;
 		private MusicService musicService;
 
 		public Player(IVoiceChannel channel, ILoggerFactory loggerFactory, MusicService musicService)
@@ -49,7 +48,6 @@ namespace BakaCore.Music
 			ConnectionState = ConnectionState.Disconnected;
 			VoiceChannel = channel;
 			PlayerState = PlayerState.Disconnected;
-			youtubeDownloader = new YouTubeDownloader();
 			this.musicService = musicService;
 		}
 

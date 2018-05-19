@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Threading.Tasks;
 
+using BakaCore.Services;
 using YoutubeExplode;
 using YoutubeExplode.Models;
 using YoutubeExplode.Models.MediaStreams;
@@ -13,14 +14,14 @@ namespace BakaCore.Music
 		public class VideoInfo
 		{
 			private YoutubeClient client;
-			private FFmpegEncoder encoder;
+			private IMusicEncoderService encoder;
 			private string videoId;
 
 			public SongMetadata Metadata { get; private set; }
 
 			private VideoInfo() {}
 
-			internal static async Task<VideoInfo> CreateVideoInfo(YoutubeClient client, FFmpegEncoder encoder, string videoId)
+			internal static async Task<VideoInfo> CreateVideoInfo(YoutubeClient client, IMusicEncoderService encoder, string videoId)
 			{
 				var info = new VideoInfo()
 				{
@@ -48,12 +49,12 @@ namespace BakaCore.Music
 		}
 
 		private YoutubeClient client;
-		private FFmpegEncoder encoder;
+		private IMusicEncoderService encoder;
 
-		public YouTubeDownloader()
+		public YouTubeDownloader(IMusicEncoderService encoder)
 		{
 			client = new YoutubeClient();
-			encoder = new FFmpegEncoder();
+			this.encoder = encoder;
 		}
 
 		public async Task<VideoInfo> GetVideoInfo(string videoId)

@@ -2,10 +2,12 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 using LiteDB;
 
 using BakaCore.Data.Models;
 using BakaCore.Music;
+using BakaCore.Services;
 
 namespace BakaCore.Data
 {
@@ -15,11 +17,11 @@ namespace BakaCore.Data
 		private LiteStorage fileStorage;
 		private YouTubeDownloader downloader;
 
-		internal SongCollection(LiteDatabase db)
+		internal SongCollection(LiteDatabase db, IServiceProvider services)
 		{
 			collection = db.GetCollection<SongData>();
 			fileStorage = db.FileStorage;
-			downloader = new YouTubeDownloader();
+			downloader = new YouTubeDownloader(services.GetRequiredService<IMusicEncoderService>());
 		}
 
 		public async Task<SongData> GetSong(string songId)

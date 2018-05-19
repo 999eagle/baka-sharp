@@ -9,10 +9,10 @@ namespace BakaCore.Data
 		private readonly LiteDatabase db = null;
 		public SongCollection SongCollection { get; private set; }
 
-		public LiteDBStore(Configuration config)
+		public LiteDBStore(Configuration config, IServiceProvider services)
 		{
 			db = new LiteDatabase(Path.Combine(config.DataStore.DataPath, "litedb.db"));
-			SongCollection = new SongCollection(db);
+			SongCollection = new SongCollection(db, services);
 		}
 
 		protected virtual void Dispose(bool disposing)

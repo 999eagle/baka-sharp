@@ -72,7 +72,8 @@ namespace BakaCore
 						ApplicationName = "Baka-chan"
 					})
 					.AddScoped<YouTubeService>()
-					.AddScoped<MusicService>();
+					.AddScoped<MusicService>()
+					.AddScoped<IMusicEncoderService, FFmpegEncoderService>();
 
 				foreach (var handlerType in miscHandlers)
 				{
