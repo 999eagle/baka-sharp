@@ -1,5 +1,8 @@
 using System;
 using System.IO;
+using System.Threading.Tasks;
+
+using BakaCore.Data;
 
 namespace BakaCore.Music
 {
@@ -7,11 +10,21 @@ namespace BakaCore.Music
 	{
 		public SongMetadata Metadata { get; private set; }
 		public string Id { get; private set; }
+		public string FileId { get; private set; }
 
-		public Song(string id, SongMetadata metadata)
+		private SongCollection collection;
+
+		public Song(string id, SongMetadata metadata, string fileId, SongCollection collection)
 		{
 			Id = id;
 			Metadata = metadata;
+			FileId = fileId;
+			this.collection = collection;
+		}
+
+		public async Task<Stream> GetOggStream()
+		{
+			return await collection.GetOggStream(this);
 		}
 	}
 
@@ -21,6 +34,8 @@ namespace BakaCore.Music
 		public string Artist { get; private set; }
 		public string Url { get; private set; }
 		public TimeSpan Duration { get; private set; }
+
+		public SongMetadata() { }
 
 		public SongMetadata(string title, string artist, string url, TimeSpan duration)
 		{

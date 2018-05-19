@@ -13,6 +13,8 @@ using SteamWebAPI2.Interfaces;
 using Google.Apis.Services;
 using Google.Apis.YouTube.v3;
 
+using BakaCore.Services;
+
 namespace BakaCore
 {
 	public class BakaChan
@@ -39,7 +41,7 @@ namespace BakaCore
 
 			var loggerFactory = services.GetRequiredService<ILoggerFactory>();
 			logger = services.GetRequiredService<ILoggerFactory>().CreateLogger<BakaChan>();
-				
+
 			void ConfigureServices()
 			{
 				var services = new ServiceCollection();
@@ -61,6 +63,7 @@ namespace BakaCore
 					.AddScoped<Commands.CommandHandler>()
 					.AddScoped<Commands.ArgumentParser>()
 					.AddScoped<Data.IDataStore, Data.JsonStore>()
+					.AddScoped<Data.LiteDBStore>()
 					.AddScoped((_) => new Random())
 					.AddScoped<ImageService>()
 					.AddScoped((_) => new BaseClientService.Initializer()
@@ -68,7 +71,8 @@ namespace BakaCore
 						ApiKey = config.API.GoogleAPIKey,
 						ApplicationName = "Baka-chan"
 					})
-					.AddScoped<YouTubeService>();
+					.AddScoped<YouTubeService>()
+					.AddScoped<MusicService>();
 
 				foreach (var handlerType in miscHandlers)
 				{

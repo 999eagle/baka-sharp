@@ -7,8 +7,9 @@ using Microsoft.Extensions.DependencyInjection;
 
 using Discord;
 using Discord.WebSocket;
-
 using Expressions;
+
+using BakaCore.Services;
 
 namespace BakaCore.Commands
 {

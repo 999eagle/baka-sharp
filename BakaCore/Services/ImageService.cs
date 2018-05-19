@@ -7,7 +7,7 @@ using Discord;
 using Discord.WebSocket;
 using Microsoft.Extensions.Logging;
 
-namespace BakaCore
+namespace BakaCore.Services
 {
 	class ImageService
 	{

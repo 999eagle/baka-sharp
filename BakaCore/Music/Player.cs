@@ -19,6 +19,7 @@ using Concentus.Structs;
 using Concentus.Oggfile;
 
 using BakaNativeInterop.FFmpeg;
+using BakaCore.Services;
 
 namespace BakaCore.Music
 {
@@ -40,14 +41,16 @@ namespace BakaCore.Music
 		private ILogger logger;
 		private CancellationTokenSource tokenSource;
 		private YouTubeDownloader youtubeDownloader;
+		private MusicService musicService;
 
-		public Player(IVoiceChannel channel, ILoggerFactory loggerFactory)
+		public Player(IVoiceChannel channel, ILoggerFactory loggerFactory, MusicService musicService)
 		{
 			logger = loggerFactory.CreateLogger<Player>();
 			ConnectionState = ConnectionState.Disconnected;
 			VoiceChannel = channel;
 			PlayerState = PlayerState.Disconnected;
 			youtubeDownloader = new YouTubeDownloader();
+			this.musicService = musicService;
 		}
 
 		public async Task Stop()
@@ -83,7 +86,7 @@ namespace BakaCore.Music
 				{
 					break;
 				}
-				var oggStream = await youtubeDownloader.GetOggAudioStream(song);
+				var oggStream = await (await musicService.GetSong(song)).GetOggStream();
 				var opusStream = new OpusOggReadStream(null, oggStream);
 				PlayerState = PlayerState.Playing;
 				while(opusStream.HasNextPacket && !token.IsCancellationRequested)

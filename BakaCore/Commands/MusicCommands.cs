@@ -16,6 +16,7 @@ using Concentus.Structs;
 using Concentus.Oggfile;
 
 using BakaCore.Music;
+using BakaCore.Services;
 
 namespace BakaCore.Commands
 {
@@ -26,6 +27,7 @@ namespace BakaCore.Commands
 		private DiscordSocketClient client;
 		private YouTubeService youtubeService;
 		private IDictionary<ulong, Player> players = new Dictionary<ulong, Player>();
+		private MusicService musicService;
 
 		public MusicCommands(IServiceProvider services)
 		{
@@ -33,6 +35,7 @@ namespace BakaCore.Commands
 			logger = loggerFactory.CreateLogger<MusicCommands>();
 			client = services.GetRequiredService<DiscordSocketClient>();
 			youtubeService = services.GetRequiredService<YouTubeService>();
+			musicService = services.GetRequiredService<MusicService>();
 		}
 
 		private Player GetPlayer(SocketMessage senderMessage)
@@ -63,7 +66,7 @@ namespace BakaCore.Commands
 					await senderMessage.Channel.SendMessageAsync("You need to join a voice channel first.");
 					return null;
 				}
-				player = new Player(newChannel, loggerFactory);
+				player = new Player(newChannel, loggerFactory, musicService);
 				players[player.Guild.Id] = player;
 			}
 			else
@@ -91,10 +94,11 @@ namespace BakaCore.Commands
 			}
 
 			var player = await GetOrCreatePlayer(message);
+			var song = await musicService.DownloadFromYoutube(result.Id.VideoId);
 			if (player.PlayerState == PlayerState.Disconnected)
 			{
 				var playlist = new Playlist();
-				playlist.songs.Add(result.Id.VideoId);
+				playlist.songs.Add(song.Id);
 				player.Start(playlist);
 			}
 			else
