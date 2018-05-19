@@ -71,6 +71,15 @@ namespace BakaCore
 			public bool Enabled { get; set; }
 			public int Timeout { get; set; }
 		}
+		public class Music
+		{
+			public int EncodingSampleRate { get; set; }
+			public int EncodingBitrate { get; set; }
+		}
+		public class DataStore
+		{
+			public string DataPath { get; set; }
+		}
 	}
 	public class Configuration
 	{
@@ -80,5 +89,7 @@ namespace BakaCore
 		public Currency Currency { get; set; }
 		public Images Images { get; set; }
 		public ConfigClasses.Songs Songs { get; set; }
+		public ConfigClasses.Music Music { get; set; }
+		public DataStore DataStore { get; set; }
 	}
 }

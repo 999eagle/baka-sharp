@@ -9,10 +9,9 @@ namespace BakaCore.Data
 		private readonly LiteDatabase db = null;
 		public SongCollection SongCollection { get; private set; }
 
-		public LiteDBStore()
+		public LiteDBStore(Configuration config)
 		{
-			// TODO: make path configurable
-			db = new LiteDatabase(Path.Combine("data", "litedb.db"));
+			db = new LiteDatabase(Path.Combine(config.DataStore.DataPath, "litedb.db"));
 			SongCollection = new SongCollection(db);
 		}
 

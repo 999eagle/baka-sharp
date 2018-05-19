@@ -98,5 +98,12 @@
 	"Songs": {
 		"Enabled": true,
 		"Timeout": 15
+	},
+	"Music": {
+		"EncodingSampleRate": 48000,
+		"EncodingBitrate": 128000
+	},
+	"DataStore": {
+		"DataPath": "./data/"
 	}
 }
