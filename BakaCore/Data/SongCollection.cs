@@ -23,6 +23,7 @@ namespace BakaCore.Data
 		{
 			logger = loggerFactory.CreateLogger<SongCollection>();
 			collection = db.GetCollection<SongData>();
+			collection.EnsureIndex(d => d.Id);
 			fileStorage = db.FileStorage;
 			downloader = new YouTubeDownloader(services.GetRequiredService<IMusicEncoderService>());
 		}
