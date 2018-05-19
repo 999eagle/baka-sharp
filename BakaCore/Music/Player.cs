@@ -84,7 +84,13 @@ namespace BakaCore.Music
 				{
 					break;
 				}
-				var oggStream = await (await musicService.GetSong(song)).GetOggStream();
+				logger.LogDebug($"{logTag}Playing next song (Id: {song})");
+				var oggStream = await (await musicService.GetSong(song))?.GetOggStream();
+				if (oggStream == null)
+				{
+					logger.LogWarning($"{logTag}Failed to get ogg stream for current song (Id: {song})");
+					continue;
+				}
 				var opusStream = new OpusOggReadStream(null, oggStream);
 				PlayerState = PlayerState.Playing;
 				while(opusStream.HasNextPacket && !token.IsCancellationRequested)
@@ -96,12 +102,14 @@ namespace BakaCore.Music
 				PlayerState = PlayerState.Idle;
 			}
 
+			logger.LogInformation($"{logTag}Stopping music player");
 			ConnectionState = ConnectionState.Disconnecting;
 			discordStream.Dispose();
 			audioClient.Disconnected -= ClientDisconnected;
 			audioClient.Dispose();
 			ConnectionState = ConnectionState.Disconnected;
 			PlayerState = PlayerState.Disconnected;
+			logger.LogDebug($"{logTag}Stopped music player");
 
 
 			async Task ClientDisconnected(Exception ex)
