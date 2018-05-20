@@ -37,7 +37,15 @@ namespace BakaCore.Data
 		{
 			var data = await GetSong(song.Id);
 			if (data == null) return null;
-			return await Task.Run(() => fileStorage.OpenRead(data.FileId));
+			return await Task.Run(() =>
+			{
+				var dbStream = fileStorage.OpenRead(data.FileId);
+				var buffer = new MemoryStream();
+				dbStream.CopyTo(buffer);
+				dbStream.Dispose();
+				buffer.Position = 0;
+				return buffer;
+			});
 		}
 
 		public async Task<string> AddSongFromYoutube(string videoId)
