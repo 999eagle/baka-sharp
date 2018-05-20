@@ -74,7 +74,8 @@ namespace BakaCore
 					.AddScoped<YouTubeService>()
 					.AddScoped<MusicService>()
 					.AddScoped<IMusicEncoderService, FFmpegEncoderService>()
-					.AddScoped<BakaCore.Services.PlayerService>();
+					.AddScoped<BakaCore.Services.PlayerService>()
+					.AddScoped<CoreEvents>();
 
 				foreach (var handlerType in miscHandlers)
 				{
@@ -90,6 +91,7 @@ namespace BakaCore
 			logger.LogInformation($"Starting bot.");
 			instanceServiceScope = services.CreateScope();
 			Initialize();
+			var events = instanceServiceScope.ServiceProvider.GetRequiredService<CoreEvents>();
 			cancellationTokenSource = new CancellationTokenSource();
 			client.LoginAsync(TokenType.Bot, config.API.DiscordLoginToken).Wait();
 			client.StartAsync().Wait();
@@ -108,6 +110,7 @@ namespace BakaCore
 			return RunAsync();
 			async Task RunAsync()
 			{
+				await events.RaiseInitializationDone();
 				try
 				{
 					// Wait until the token is cancelled
@@ -117,6 +120,7 @@ namespace BakaCore
 				{
 					logger.LogInformation($"Stopping bot.");
 				}
+				await events.RaiseBotShuttingDown();
 				await client.SetStatusAsync(UserStatus.Offline);
 				await client.StopAsync();
 				await client.LogoutAsync();
