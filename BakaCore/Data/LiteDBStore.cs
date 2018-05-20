@@ -15,7 +15,7 @@ namespace BakaCore.Data
 		{
 			logger = loggerFactory.CreateLogger<LiteDBStore>();
 			db = new LiteDatabase(Path.Combine(config.DataStore.DataPath, "litedb.db"));
-			SongCollection = new SongCollection(db, loggerFactory, services);
+			SongCollection = new SongCollection(db, loggerFactory, config, services);
 		}
 
 		protected virtual void Dispose(bool disposing)
