@@ -23,70 +23,55 @@ namespace BakaCore.Commands
 	class MusicCommands
 	{
 		private ILogger logger;
-		private ILoggerFactory loggerFactory;
 		private DiscordSocketClient client;
 		private YouTubeService youtubeService;
-		private IDictionary<ulong, Player> players = new Dictionary<ulong, Player>();
+		private PlayerService playerService;
 		private MusicService musicService;
 
 		public MusicCommands(IServiceProvider services)
 		{
-			loggerFactory = services.GetRequiredService<ILoggerFactory>();
+			var loggerFactory = services.GetRequiredService<ILoggerFactory>();
 			logger = loggerFactory.CreateLogger<MusicCommands>();
 			client = services.GetRequiredService<DiscordSocketClient>();
 			youtubeService = services.GetRequiredService<YouTubeService>();
 			musicService = services.GetRequiredService<MusicService>();
+			playerService = services.GetRequiredService<PlayerService>();
 		}
 
-		private Player GetPlayer(SocketMessage senderMessage)
+		private IVoiceChannel GetVoiceChannelFromMessage(SocketMessage message)
 		{
-			if (!(senderMessage.Channel is SocketGuildChannel channel))
-			{
-				return null;
-			}
-			if (!players.TryGetValue(channel.Guild.Id, out var player))
-			{
-				return null;
-			}
-			else
-			{
-				return player;
-			}
+			return (message.Author as IGuildUser)?.VoiceChannel;
 		}
 
-		private async Task<Player> GetOrCreatePlayer(SocketMessage senderMessage, IVoiceChannel newChannel = null)
+		private IGuild GetGuildFromMessage(SocketMessage message)
 		{
-			newChannel = newChannel ?? (senderMessage.Author as IGuildUser)?.VoiceChannel;
-			var player = GetPlayer(senderMessage);
+			return (message.Channel as IGuildChannel)?.Guild;
+		}
 
-			if (player == null)
-			{
-				if (newChannel == null)
-				{
-					await senderMessage.Channel.SendMessageAsync("You need to join a voice channel first.");
-					return null;
-				}
-				player = new Player(newChannel, loggerFactory, musicService);
-				players[player.Guild.Id] = player;
-			}
-			else
-			{
-				// TODO: leave channel and join new channel
-			}
-			return player;
+		private async Task<Google.Apis.YouTube.v3.Data.SearchResult> SearchYoutube(string searchText)
+		{
+			var request = youtubeService.Search.List("snippet");
+			request.Q = searchText;
+			request.MaxResults = 1;
+			request.Type = "video";
+			var response = await request.ExecuteAsync();
+			return response.Items.FirstOrDefault();
 		}
 
 		[Command("play", Scope = CommandScope.Guild)]
 		public async Task PlayCommand(SocketMessage message, [FullText] string text)
 		{
+			var channel = GetVoiceChannelFromMessage(message);
+			var player = playerService.GetPlayerForGuild(GetGuildFromMessage(message));
+			if (channel == null && player?.VoiceChannel == null)
+			{
+				await message.Channel.SendMessageAsync("Please join a voice channel first and try again");
+				return;
+			}
+
 			text = text.Replace('`', '\'');
 			await message.Channel.SendMessageAsync($"**Searching** :mag_right: `{text}`");
-			var request = youtubeService.Search.List("snippet");
-			request.Q = text;
-			request.MaxResults = 1;
-			request.Type = "video";
-			var response = await request.ExecuteAsync();
-			var result = response.Items.FirstOrDefault();
+			var result = await SearchYoutube(text);
 			if (result == null)
 			{
 				await message.Channel.SendMessageAsync("Couldn't find anything for your search...");
@@ -96,18 +81,8 @@ namespace BakaCore.Commands
 			// Send message back as soon as possible while song is being downloaded
 			var feedbackTask = SendFeedback();
 
-			var player = await GetOrCreatePlayer(message);
 			var song = await musicService.DownloadFromYoutube(result.Id.VideoId);
-			if (player.PlayerState == PlayerState.Disconnected)
-			{
-				var playlist = new Playlist();
-				playlist.songs.Add(song.Id);
-				player.Start(playlist);
-			}
-			else
-			{
-				// TODO: Enqueue song
-			}
+			playerService.EnqueueAndPlay(channel, song.Id);
 
 			await feedbackTask;
 
@@ -133,9 +108,7 @@ namespace BakaCore.Commands
 		[Command("stop", Scope = CommandScope.Guild)]
 		public async Task StopCommand(SocketMessage message)
 		{
-			var player = GetPlayer(message);
-			if (player == null || player.PlayerState == PlayerState.Disconnected) return;
-			await player.Stop();
+			await playerService.StopPlayerInGuild(GetGuildFromMessage(message));
 		}
 	}
 }

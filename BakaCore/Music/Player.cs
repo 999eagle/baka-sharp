@@ -33,7 +33,8 @@ namespace BakaCore.Music
 	public class Player
 	{
 		public IVoiceChannel VoiceChannel { get; private set; }
-		public IGuild Guild { get { return VoiceChannel.Guild; } }
+		public Playlist Playlist { get; private set; }
+		public IGuild Guild { get; private set; }
 		public Task PlayerTask { get; private set; }
 		public ConnectionState ConnectionState { get; private set; }
 		public PlayerState PlayerState { get; private set; }
@@ -42,33 +43,36 @@ namespace BakaCore.Music
 		private CancellationTokenSource tokenSource;
 		private MusicService musicService;
 
-		public Player(IVoiceChannel channel, ILoggerFactory loggerFactory, MusicService musicService)
+		public Player(IGuild guild, ILoggerFactory loggerFactory, MusicService musicService)
 		{
 			logger = loggerFactory.CreateLogger<Player>();
 			ConnectionState = ConnectionState.Disconnected;
-			VoiceChannel = channel;
+			Guild = guild;
 			PlayerState = PlayerState.Disconnected;
 			this.musicService = musicService;
 		}
 
-		public async Task Stop()
+		internal async Task Stop()
 		{
 			if (PlayerState == PlayerState.Disconnected) return;
 			tokenSource.Cancel();
 			await PlayerTask;
 		}
 
-		public void Start(Playlist playlist)
+		internal void Start(IVoiceChannel channel, Playlist playlist)
 		{
 			if (PlayerState != PlayerState.Disconnected) return;
+			if (channel.Guild != Guild) throw new ArgumentException("Given voice channel is not in this player's guild", nameof(channel));
 			tokenSource = new CancellationTokenSource();
-			PlayerTask = PlayMusic(playlist);
+			PlayerTask = PlayMusic(channel, playlist);
 		}
 
-		private async Task PlayMusic(Playlist playlist)
+		private async Task PlayMusic(IVoiceChannel channel, Playlist playlist)
 		{
 			var token = tokenSource.Token;
 			PlayerState = PlayerState.Idle;
+			VoiceChannel = channel;
+			Playlist = playlist;
 			var logTag = $"[Music {VoiceChannel.GuildId}] ";
 			logger.LogInformation($"{logTag}Starting music player in guild {Guild.Name}, channel {VoiceChannel.Name}");
 			ConnectionState = ConnectionState.Connecting;
@@ -79,33 +83,33 @@ namespace BakaCore.Music
 			{
 				audioClient = await VoiceChannel.ConnectAsync();
 				discordStream = audioClient.CreateOpusStream();
-			logger.LogDebug($"{logTag}Connected");
-			ConnectionState = ConnectionState.Connected;
+				logger.LogDebug($"{logTag}Connected");
+				ConnectionState = ConnectionState.Connected;
 
-			while (!token.IsCancellationRequested)
-			{
-				var song = playlist.GetNextSong();
-				if (song == null)
+				while (!token.IsCancellationRequested)
 				{
-					break;
+					var song = playlist.GetNextSong();
+					if (song == null)
+					{
+						break;
+					}
+					logger.LogDebug($"{logTag}Playing next song (Id: {song})");
+					var oggStream = await (await musicService.GetSong(song))?.GetOggStream();
+					if (oggStream == null)
+					{
+						logger.LogWarning($"{logTag}Failed to get ogg stream for current song (Id: {song})");
+						continue;
+					}
+					var opusStream = new OpusOggReadStream(null, oggStream);
+					PlayerState = PlayerState.Playing;
+					while(opusStream.HasNextPacket && !token.IsCancellationRequested)
+					{
+						var packet = opusStream.RetrieveNextPacket();
+						await discordStream.WriteAsync(packet, 0, packet.Length);
+					}
+					oggStream.Dispose();
+					PlayerState = PlayerState.Idle;
 				}
-				logger.LogDebug($"{logTag}Playing next song (Id: {song})");
-				var oggStream = await (await musicService.GetSong(song))?.GetOggStream();
-				if (oggStream == null)
-				{
-					logger.LogWarning($"{logTag}Failed to get ogg stream for current song (Id: {song})");
-					continue;
-				}
-				var opusStream = new OpusOggReadStream(null, oggStream);
-				PlayerState = PlayerState.Playing;
-				while(opusStream.HasNextPacket && !token.IsCancellationRequested)
-				{
-					var packet = opusStream.RetrieveNextPacket();
-					await discordStream.WriteAsync(packet, 0, packet.Length);
-				}
-				oggStream.Dispose();
-				PlayerState = PlayerState.Idle;
-			}
 			}
 			catch(Exception ex)
 			{
@@ -113,17 +117,19 @@ namespace BakaCore.Music
 			}
 			finally
 			{
-			logger.LogInformation($"{logTag}Stopping music player");
-			ConnectionState = ConnectionState.Disconnecting;
+				logger.LogInformation($"{logTag}Stopping music player");
+				VoiceChannel = null;
+				Playlist = null;
+				ConnectionState = ConnectionState.Disconnecting;
 				discordStream?.Dispose();
 				if (audioClient != null)
 				{
-			audioClient.Disconnected -= ClientDisconnected;
-			audioClient.Dispose();
+					audioClient.Disconnected -= ClientDisconnected;
+					audioClient.Dispose();
 				}
-			ConnectionState = ConnectionState.Disconnected;
-			PlayerState = PlayerState.Disconnected;
-			logger.LogDebug($"{logTag}Stopped music player");
+				ConnectionState = ConnectionState.Disconnected;
+				PlayerState = PlayerState.Disconnected;
+				logger.LogDebug($"{logTag}Stopped music player");
 			}
 
 
@@ -131,10 +137,10 @@ namespace BakaCore.Music
 			{
 				return Task.Run(() => {
 					if (ex != null)
-			{
+					{
 						logger.LogError(ex, "Audio client disconnected with exception");
 					}
-				tokenSource.Cancel();
+					tokenSource.Cancel();
 				});
 			}
 		}

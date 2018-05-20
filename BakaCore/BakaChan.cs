@@ -73,7 +73,8 @@ namespace BakaCore
 					})
 					.AddScoped<YouTubeService>()
 					.AddScoped<MusicService>()
-					.AddScoped<IMusicEncoderService, FFmpegEncoderService>();
+					.AddScoped<IMusicEncoderService, FFmpegEncoderService>()
+					.AddScoped<BakaCore.Services.PlayerService>();
 
 				foreach (var handlerType in miscHandlers)
 				{
