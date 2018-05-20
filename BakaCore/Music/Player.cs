@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -30,15 +31,31 @@ namespace BakaCore.Music
 		Playing
 	}
 
+	public enum SongState
+	{
+		Finished,
+		Skipped,
+		Playing,
+		Error
+	}
+
 	public class Player
 	{
+		public struct PlayHistoryEntry
+		{
+			public Song song;
+			public SongState state;
+		}
+
 		public IVoiceChannel VoiceChannel { get; private set; }
 		public Playlist Playlist { get; private set; }
 		public IGuild Guild { get; private set; }
 		public Task PlayerTask { get; private set; }
 		public ConnectionState ConnectionState { get; private set; }
 		public PlayerState PlayerState { get; private set; }
+		public IImmutableList<PlayHistoryEntry> PlayedSongs { get { return ImmutableList.ToImmutableList(playedSongs); } }
 
+		private IList<PlayHistoryEntry> playedSongs;
 		private ILogger logger;
 		private CancellationTokenSource tokenSource;
 		private MusicService musicService;
@@ -50,6 +67,7 @@ namespace BakaCore.Music
 			Guild = guild;
 			PlayerState = PlayerState.Disconnected;
 			this.musicService = musicService;
+			playedSongs = new List<PlayHistoryEntry>();
 		}
 
 		internal async Task Stop()
@@ -73,6 +91,7 @@ namespace BakaCore.Music
 			PlayerState = PlayerState.Idle;
 			VoiceChannel = channel;
 			Playlist = playlist;
+			playedSongs.Clear();
 			var logTag = $"[Music {VoiceChannel.GuildId}] ";
 			logger.LogInformation($"{logTag}Starting music player in guild {Guild.Name}, channel {VoiceChannel.Name}");
 			ConnectionState = ConnectionState.Connecting;
@@ -88,26 +107,38 @@ namespace BakaCore.Music
 
 				while (!token.IsCancellationRequested)
 				{
-					var song = playlist.GetNextSong();
-					if (song == null)
+					var songId = playlist.GetNextSong();
+					if (songId == null)
 					{
 						break;
 					}
-					logger.LogDebug($"{logTag}Playing next song (Id: {song})");
-					var oggStream = await (await musicService.GetSong(song))?.GetOggStream();
+					logger.LogDebug($"{logTag}Playing next song (Id: {songId})");
+					var song = await musicService.GetSong(songId);
+					if (song == null)
+					{
+						logger.LogWarning($"{logTag}Failed to get data for song id {songId}");
+						continue;
+					}
+					var playHistoryEntry = new PlayHistoryEntry { song = song, state = SongState.Playing };
+					var oggStream = await song.GetOggStream();
 					if (oggStream == null)
 					{
-						logger.LogWarning($"{logTag}Failed to get ogg stream for current song (Id: {song})");
+						logger.LogWarning($"{logTag}Failed to get ogg stream for current song (Id: {songId})");
+						playHistoryEntry.state = SongState.Error;
+						playedSongs.Add(playHistoryEntry);
 						continue;
 					}
 					var opusStream = new OpusOggReadStream(null, oggStream);
 					PlayerState = PlayerState.Playing;
+					playedSongs.Add(playHistoryEntry);
 					while(opusStream.HasNextPacket && !token.IsCancellationRequested)
 					{
 						var packet = opusStream.RetrieveNextPacket();
 						await discordStream.WriteAsync(packet, 0, packet.Length);
 					}
 					oggStream.Dispose();
+					playHistoryEntry.state = SongState.Finished;
+					playedSongs[playedSongs.Count] = playHistoryEntry;
 					PlayerState = PlayerState.Idle;
 				}
 			}
