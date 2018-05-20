@@ -128,17 +128,29 @@ namespace BakaCore.Music
 						playedSongs.Add(playHistoryEntry);
 						continue;
 					}
-					var opusStream = new OpusOggReadStream(null, oggStream);
-					PlayerState = PlayerState.Playing;
-					playedSongs.Add(playHistoryEntry);
-					while(opusStream.HasNextPacket && !token.IsCancellationRequested)
+					try
 					{
-						var packet = opusStream.RetrieveNextPacket();
-						await discordStream.WriteAsync(packet, 0, packet.Length);
+						var opusStream = new OpusOggReadStream(null, oggStream);
+						PlayerState = PlayerState.Playing;
+						playedSongs.Add(playHistoryEntry);
+						while(opusStream.HasNextPacket && !token.IsCancellationRequested)
+						{
+							var packet = opusStream.RetrieveNextPacket();
+							await discordStream.WriteAsync(packet, 0, packet.Length);
+						}
+						playHistoryEntry.state = SongState.Finished;
+						playedSongs[playedSongs.Count] = playHistoryEntry;
 					}
-					oggStream.Dispose();
-					playHistoryEntry.state = SongState.Finished;
-					playedSongs[playedSongs.Count] = playHistoryEntry;
+					catch (Exception ex)
+					{
+						logger.LogError(ex, $"{logTag}Exception while playing, skipping to next track");
+						playHistoryEntry.state = SongState.Error;
+						playedSongs[playedSongs.Count] = playHistoryEntry;
+					}
+					finally
+					{
+						oggStream.Dispose();
+					}
 					PlayerState = PlayerState.Idle;
 				}
 			}
