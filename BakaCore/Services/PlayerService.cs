@@ -15,11 +15,16 @@ namespace BakaCore.Services
 		private ILogger logger;
 		private IDictionary<ulong, Player> currentPlayers = new Dictionary<ulong, Player>();
 
-		public PlayerService(ILoggerFactory loggerFactory, MusicService musicService)
+		public PlayerService(ILoggerFactory loggerFactory, MusicService musicService, CoreEvents events)
 		{
 			this.loggerFactory = loggerFactory;
 			this.musicService = musicService;
 			logger = loggerFactory.CreateLogger<PlayerService>();
+			events.BotShuttingDown += () =>
+			{
+				this.Dispose();
+				return Task.CompletedTask;
+			};
 		}
 
 		public Player GetPlayerForGuild(IGuild guild)
