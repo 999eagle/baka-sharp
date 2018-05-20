@@ -29,6 +29,7 @@ namespace BakaCore.Commands
 		private YouTubeService youtubeService;
 		private PlayerService playerService;
 		private MusicService musicService;
+		private Configuration config;
 
 		public MusicCommands(IServiceProvider services)
 		{
@@ -38,6 +39,7 @@ namespace BakaCore.Commands
 			youtubeService = services.GetRequiredService<YouTubeService>();
 			musicService = services.GetRequiredService<MusicService>();
 			playerService = services.GetRequiredService<PlayerService>();
+			config = services.GetRequiredService<Configuration>();
 		}
 
 		private IVoiceChannel GetVoiceChannelFromMessage(SocketMessage message)
@@ -78,18 +80,23 @@ namespace BakaCore.Commands
 				}
 			}
 
-			if (feedbackChannel != null)
+			try
 			{
 				var detailRequest = youtubeService.Videos.List("contentDetails,snippet");
 				detailRequest.Id = videoId;
 				var detailResponse = await detailRequest.ExecuteAsync();
 				if (detailResponse.Items.Count < 1)
 				{
-					await feedbackChannel?.SendMessageAsync("I can't access that video...");
-					return null;
+					throw new VideoUnavailableException(videoId, 0, "");
 				}
 				// using XmlConvert because that supports the ISO8601 format used in the response
 				var duration = System.Xml.XmlConvert.ToTimeSpan(detailResponse.Items[0].ContentDetails.Duration);
+				if (duration > config.Music.MaximumSongLengthTimeSpan)
+				{
+					throw new VideoTooLongException(config.Music.MaximumSongLengthTimeSpan);
+				}
+				if (feedbackChannel != null)
+				{
 				var embed = new EmbedBuilder()
 					.WithAuthor("Added to queue")
 					.WithTitle(detailResponse.Items[0].Snippet.Title)
@@ -100,8 +107,6 @@ namespace BakaCore.Commands
 					.Build();
 				await feedbackChannel.SendMessageAsync("", false, embed);
 			}
-			try
-			{
 				return await musicService.DownloadFromYoutube(videoId);
 			}
 			catch(VideoUnavailableException)

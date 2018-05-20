@@ -20,18 +20,18 @@ namespace BakaCore.Data
 		private LiteStorage fileStorage;
 		private YouTubeDownloader downloader;
 		private ILogger logger;
+		private Configuration config;
 		private IDictionary<string, ManualResetEvent> currentDownloads = new Dictionary<string, ManualResetEvent>();
 		private object currentDownloadsLock = new object();
 
-		static readonly TimeSpan MaximumVideoLength = new TimeSpan(0, minutes: 10, seconds: 0);
-
-		internal SongCollection(LiteDatabase db, ILoggerFactory loggerFactory, IServiceProvider services)
+		internal SongCollection(LiteDatabase db, ILoggerFactory loggerFactory, Configuration config, IServiceProvider services)
 		{
 			logger = loggerFactory.CreateLogger<SongCollection>();
 			collection = db.GetCollection<SongData>();
 			collection.EnsureIndex(d => d.Id);
 			fileStorage = db.FileStorage;
 			downloader = new YouTubeDownloader(services.GetRequiredService<IMusicEncoderService>());
+			this.config = config;
 		}
 
 		public async Task<SongData> GetSong(string songId)
@@ -91,9 +91,9 @@ namespace BakaCore.Data
 			{
 				logger.LogDebug($"Downloading new song from Youtube (Video ID: {videoId})");
 				var videoInfo = await downloader.GetVideoInfo(videoId);
-				if (videoInfo.Metadata.Duration > MaximumVideoLength)
+				if (videoInfo.Metadata.Duration > config.Music.MaximumSongLengthTimeSpan)
 				{
-					throw new VideoTooLongException(MaximumVideoLength);
+					throw new VideoTooLongException(config.Music.MaximumSongLengthTimeSpan);
 				}
 				var stream = await videoInfo.GetOggAudioStream();
 				if (stream == null)

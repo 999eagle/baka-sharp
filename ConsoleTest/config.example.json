@@ -101,7 +101,8 @@
 	},
 	"Music": {
 		"EncodingSampleRate": 48000,
-		"EncodingBitrate": 128000
+		"EncodingBitrate": 128000,
+		"MaximumSongLength": "PT10M"
 	},
 	"DataStore": {
 		"DataPath": "./data/"
