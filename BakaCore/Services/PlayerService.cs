@@ -4,7 +4,6 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 
 using Discord;
-using Discord;
 using BakaCore.Music;
 
 namespace BakaCore.Services
