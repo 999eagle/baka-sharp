@@ -93,6 +93,9 @@ namespace BakaCore.Commands
 				return;
 			}
 
+			// Send message back as soon as possible while song is being downloaded
+			var feedbackTask = SendFeedback();
+
 			var player = await GetOrCreatePlayer(message);
 			var song = await musicService.DownloadFromYoutube(result.Id.VideoId);
 			if (player.PlayerState == PlayerState.Disconnected)
@@ -106,20 +109,25 @@ namespace BakaCore.Commands
 				// TODO: Enqueue song
 			}
 
-			var detailRequest = youtubeService.Videos.List("contentDetails");
-			detailRequest.Id = result.Id.VideoId;
-			var detailResponse = await detailRequest.ExecuteAsync();
-			// using XmlConvert because that supports the ISO8601 format used in the response
-			var duration = System.Xml.XmlConvert.ToTimeSpan(detailResponse.Items[0].ContentDetails.Duration);
-			var embed = new EmbedBuilder()
-				.WithAuthor("Added to queue")
-				.WithTitle(result.Snippet.Title)
-				.WithUrl($"https://www.youtube.com/watch?v={result.Id.VideoId}")
-				.AddField("Channel", result.Snippet.ChannelTitle, true)
-				.AddField("Length", duration.ToString(), true)
-				.WithThumbnailUrl(result.Snippet.Thumbnails.Default__.Url)
-				.Build();
-			await message.Channel.SendMessageAsync("", false, embed);
+			await feedbackTask;
+
+			async Task SendFeedback()
+			{
+				var detailRequest = youtubeService.Videos.List("contentDetails");
+				detailRequest.Id = result.Id.VideoId;
+				var detailResponse = await detailRequest.ExecuteAsync();
+				// using XmlConvert because that supports the ISO8601 format used in the response
+				var duration = System.Xml.XmlConvert.ToTimeSpan(detailResponse.Items[0].ContentDetails.Duration);
+				var embed = new EmbedBuilder()
+					.WithAuthor("Added to queue")
+					.WithTitle(result.Snippet.Title)
+					.WithUrl($"https://www.youtube.com/watch?v={result.Id.VideoId}")
+					.AddField("Channel", result.Snippet.ChannelTitle, true)
+					.AddField("Length", duration.ToString(), true)
+					.WithThumbnailUrl(result.Snippet.Thumbnails.Default__.Url)
+					.Build();
+				await message.Channel.SendMessageAsync("", false, embed);
+			}
 		}
 
 		[Command("stop", Scope = CommandScope.Guild)]
