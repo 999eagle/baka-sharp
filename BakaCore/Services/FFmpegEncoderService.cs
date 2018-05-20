@@ -41,7 +41,7 @@ namespace BakaCore.Services
 					using (var transcoder = new AudioTranscoder(encoder, decoder))
 					{
 						outputCtx.WriteFileHeader();
-						transcoder.Transcode();
+						transcoder.Transcode(true);
 						outputCtx.WriteFileTrailer();
 						logger.LogDebug("Transcoding finished");
 					}
