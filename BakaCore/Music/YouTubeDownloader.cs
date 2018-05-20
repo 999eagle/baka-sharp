@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 
 using BakaCore.Services;
 using YoutubeExplode;
+using YoutubeExplode.Exceptions;
 using YoutubeExplode.Models;
 using YoutubeExplode.Models.MediaStreams;
 
@@ -29,8 +30,15 @@ namespace BakaCore.Music
 					encoder = encoder,
 					videoId = videoId
 				};
-				await info.GetMetadata();
-				return info;
+				try
+				{
+					await info.GetMetadata();
+					return info;
+				}
+				catch (VideoUnavailableException)
+				{
+					return null;
+				}
 			}
 
 			private async Task GetMetadata()

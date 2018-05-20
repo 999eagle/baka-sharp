@@ -87,6 +87,11 @@ namespace BakaCore.Data
 
 			logger.LogDebug($"Downloading new song from Youtube (Video ID: {videoId})");
 			var videoInfo = await downloader.GetVideoInfo(videoId);
+			if (videoInfo == null)
+			{
+				logger.LogWarning($"Getting info for Youtube video {videoId} failed (probably an invalid ID)");
+				return null;
+			}
 			var stream = await videoInfo.GetOggAudioStream();
 			if (stream == null)
 			{
