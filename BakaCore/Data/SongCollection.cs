@@ -95,6 +95,10 @@ namespace BakaCore.Data
 				{
 					throw new VideoTooLongException(config.Music.MaximumSongLengthTimeSpan);
 				}
+				if (videoInfo.Metadata.Duration == TimeSpan.Zero)
+				{
+					throw new VideoIsLivestreamException();
+				}
 				var stream = await videoInfo.GetOggAudioStream();
 				if (stream == null)
 				{

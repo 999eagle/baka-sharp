@@ -89,6 +89,10 @@ namespace BakaCore.Commands
 				{
 					throw new VideoUnavailableException(videoId, 0, "");
 				}
+				if (detailResponse.Items[0].Snippet.LiveBroadcastContent != "none")
+				{
+					throw new VideoIsLivestreamException();
+				}
 				// using XmlConvert because that supports the ISO8601 format used in the response
 				var duration = System.Xml.XmlConvert.ToTimeSpan(detailResponse.Items[0].ContentDetails.Duration);
 				if (duration > config.Music.MaximumSongLengthTimeSpan)
@@ -97,16 +101,16 @@ namespace BakaCore.Commands
 				}
 				if (feedbackChannel != null)
 				{
-				var embed = new EmbedBuilder()
-					.WithAuthor("Added to queue")
-					.WithTitle(detailResponse.Items[0].Snippet.Title)
-					.WithUrl($"https://www.youtube.com/watch?v={videoId}")
-					.AddField("Channel", detailResponse.Items[0].Snippet.ChannelTitle, true)
-					.AddField("Length", duration.ToString(), true)
-					.WithThumbnailUrl(detailResponse.Items[0].Snippet.Thumbnails.Default__.Url)
-					.Build();
-				await feedbackChannel.SendMessageAsync("", false, embed);
-			}
+					var embed = new EmbedBuilder()
+						.WithAuthor("Added to queue")
+						.WithTitle(detailResponse.Items[0].Snippet.Title)
+						.WithUrl($"https://www.youtube.com/watch?v={videoId}")
+						.AddField("Channel", detailResponse.Items[0].Snippet.ChannelTitle, true)
+						.AddField("Length", duration.ToString(), true)
+						.WithThumbnailUrl(detailResponse.Items[0].Snippet.Thumbnails.Default__.Url)
+						.Build();
+					await feedbackChannel.SendMessageAsync("", false, embed);
+				}
 				return await musicService.DownloadFromYoutube(videoId);
 			}
 			catch(VideoUnavailableException)
@@ -116,6 +120,10 @@ namespace BakaCore.Commands
 			catch(VideoTooLongException ex)
 			{
 				if (feedbackChannel != null) await feedbackChannel.SendMessageAsync($"This video is too long. Please use only videos shorter than {ex.MaxLength:m\\:ss} minutes");
+			}
+			catch (VideoIsLivestreamException)
+			{
+				if (feedbackChannel != null) await feedbackChannel.SendMessageAsync("I can't use live streams");
 			}
 			return null;
 		}

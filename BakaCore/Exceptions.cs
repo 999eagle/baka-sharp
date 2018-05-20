@@ -10,4 +10,6 @@ namespace BakaCore
 			MaxLength = maxLength;
 		}
 	}
+
+	public class VideoIsLivestreamException : Exception {}
 }
