@@ -14,6 +14,7 @@ using Discord.WebSocket;
 using Google.Apis.YouTube.v3;
 using Concentus.Structs;
 using Concentus.Oggfile;
+using YoutubeExplode;
 
 using BakaCore.Music;
 using BakaCore.Services;
@@ -48,14 +49,14 @@ namespace BakaCore.Commands
 			return (message.Channel as IGuildChannel)?.Guild;
 		}
 
-		private async Task<Google.Apis.YouTube.v3.Data.SearchResult> SearchYoutube(string searchText)
+		private async Task<string> SearchYoutube(string searchText)
 		{
 			var request = youtubeService.Search.List("snippet");
 			request.Q = searchText;
 			request.MaxResults = 1;
 			request.Type = "video";
 			var response = await request.ExecuteAsync();
-			return response.Items.FirstOrDefault();
+			return response.Items.FirstOrDefault()?.Id.VideoId;
 		}
 
 		[Command("play", Scope = CommandScope.Guild)]
@@ -70,39 +71,43 @@ namespace BakaCore.Commands
 			}
 
 			text = text.Replace('`', '\'');
-			await message.Channel.SendMessageAsync($"**Searching** :mag_right: `{text}`");
-			var result = await SearchYoutube(text);
-			if (result == null)
+			if (YoutubeClient.TryParseVideoId(text, out var videoId))
 			{
-				await message.Channel.SendMessageAsync("Couldn't find anything for your search...");
+				// video id parsed successfully, nothing to do
+			}
+			else
+			{
+				await message.Channel.SendMessageAsync($"**Searching** :mag_right: `{text}`");
+				videoId = await SearchYoutube(text);
+				if (videoId == null)
+				{
+					await message.Channel.SendMessageAsync("Couldn't find anything for your search...");
+					return;
+				}
+			}
+
+			var detailRequest = youtubeService.Videos.List("contentDetails,snippet");
+			detailRequest.Id = videoId;
+			var detailResponse = await detailRequest.ExecuteAsync();
+			if (detailResponse.Items.Count < 1)
+			{
+				await message.Channel.SendMessageAsync("I can't access that video...");
 				return;
 			}
+			// using XmlConvert because that supports the ISO8601 format used in the response
+			var duration = System.Xml.XmlConvert.ToTimeSpan(detailResponse.Items[0].ContentDetails.Duration);
+			var embed = new EmbedBuilder()
+				.WithAuthor("Added to queue")
+				.WithTitle(detailResponse.Items[0].Snippet.Title)
+				.WithUrl($"https://www.youtube.com/watch?v={videoId}")
+				.AddField("Channel", detailResponse.Items[0].Snippet.ChannelTitle, true)
+				.AddField("Length", duration.ToString(), true)
+				.WithThumbnailUrl(detailResponse.Items[0].Snippet.Thumbnails.Default__.Url)
+				.Build();
+			await message.Channel.SendMessageAsync("", false, embed);
 
-			// Send message back as soon as possible while song is being downloaded
-			var feedbackTask = SendFeedback();
-
-			var song = await musicService.DownloadFromYoutube(result.Id.VideoId);
+			var song = await musicService.DownloadFromYoutube(videoId);
 			playerService.EnqueueAndPlay(channel, song.Id);
-
-			await feedbackTask;
-
-			async Task SendFeedback()
-			{
-				var detailRequest = youtubeService.Videos.List("contentDetails");
-				detailRequest.Id = result.Id.VideoId;
-				var detailResponse = await detailRequest.ExecuteAsync();
-				// using XmlConvert because that supports the ISO8601 format used in the response
-				var duration = System.Xml.XmlConvert.ToTimeSpan(detailResponse.Items[0].ContentDetails.Duration);
-				var embed = new EmbedBuilder()
-					.WithAuthor("Added to queue")
-					.WithTitle(result.Snippet.Title)
-					.WithUrl($"https://www.youtube.com/watch?v={result.Id.VideoId}")
-					.AddField("Channel", result.Snippet.ChannelTitle, true)
-					.AddField("Length", duration.ToString(), true)
-					.WithThumbnailUrl(result.Snippet.Thumbnails.Default__.Url)
-					.Build();
-				await message.Channel.SendMessageAsync("", false, embed);
-			}
 		}
 
 		[Command("stop", Scope = CommandScope.Guild)]
