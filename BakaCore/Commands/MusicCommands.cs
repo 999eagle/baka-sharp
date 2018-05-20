@@ -15,6 +15,7 @@ using Google.Apis.YouTube.v3;
 using Concentus.Structs;
 using Concentus.Oggfile;
 using YoutubeExplode;
+using YoutubeExplode.Exceptions;
 
 using BakaCore.Music;
 using BakaCore.Services;
@@ -99,7 +100,19 @@ namespace BakaCore.Commands
 					.Build();
 				await feedbackChannel.SendMessageAsync("", false, embed);
 			}
-			return await musicService.DownloadFromYoutube(videoId);
+			try
+			{
+				return await musicService.DownloadFromYoutube(videoId);
+			}
+			catch(VideoUnavailableException)
+			{
+				if (feedbackChannel != null) await feedbackChannel.SendMessageAsync("I can't access that video...");
+			}
+			catch(VideoTooLongException ex)
+			{
+				if (feedbackChannel != null) await feedbackChannel.SendMessageAsync($"This video is too long. Please use only videos shorter than {ex.MaxLength:m\\:ss} minutes");
+			}
+			return null;
 		}
 
 		[Command("play", Scope = CommandScope.Guild)]

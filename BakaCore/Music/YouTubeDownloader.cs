@@ -30,15 +30,8 @@ namespace BakaCore.Music
 					encoder = encoder,
 					videoId = videoId
 				};
-				try
-				{
-					await info.GetMetadata();
-					return info;
-				}
-				catch (VideoUnavailableException)
-				{
-					return null;
-				}
+				await info.GetMetadata();
+				return info;
 			}
 
 			private async Task GetMetadata()

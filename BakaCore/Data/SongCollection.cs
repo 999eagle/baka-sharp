@@ -23,6 +23,8 @@ namespace BakaCore.Data
 		private IDictionary<string, ManualResetEvent> currentDownloads = new Dictionary<string, ManualResetEvent>();
 		private object currentDownloadsLock = new object();
 
+		static readonly TimeSpan MaximumVideoLength = new TimeSpan(0, minutes: 10, seconds: 0);
+
 		internal SongCollection(LiteDatabase db, ILoggerFactory loggerFactory, IServiceProvider services)
 		{
 			logger = loggerFactory.CreateLogger<SongCollection>();
@@ -85,36 +87,40 @@ namespace BakaCore.Data
 				return songData?.Id;
 			}
 
-			logger.LogDebug($"Downloading new song from Youtube (Video ID: {videoId})");
-			var videoInfo = await downloader.GetVideoInfo(videoId);
-			if (videoInfo == null)
+			try
 			{
-				logger.LogWarning($"Getting info for Youtube video {videoId} failed (probably an invalid ID)");
-				return null;
+				logger.LogDebug($"Downloading new song from Youtube (Video ID: {videoId})");
+				var videoInfo = await downloader.GetVideoInfo(videoId);
+				if (videoInfo.Metadata.Duration > MaximumVideoLength)
+				{
+					throw new VideoTooLongException(MaximumVideoLength);
+				}
+				var stream = await videoInfo.GetOggAudioStream();
+				if (stream == null)
+				{
+					logger.LogError($"Downloading Youtube video {videoId} failed");
+					return null;
+				}
+				var fileId = $"$/music/oggopus/youtube/{videoId}";
+				var info = await Task.Run(() => fileStorage.Upload(fileId, videoId, stream));
+				songData = new SongData()
+				{
+					Id = songId,
+					FileId = fileId,
+					Metadata = videoInfo.Metadata
+				};
+				await Task.Run(() => collection.Upsert(songData));
+				return songId;
 			}
-			var stream = await videoInfo.GetOggAudioStream();
-			if (stream == null)
+			finally
 			{
-				logger.LogError($"Downloading Youtube video {videoId} failed");
-				return null;
+				// signal other waiting tasks and delete the wait entry
+				lock (currentDownloadsLock)
+				{
+					waitEvent.Set();
+					currentDownloads.Remove(songId);
+				}
 			}
-			var fileId = $"$/music/oggopus/youtube/{videoId}";
-			var info = await Task.Run(() => fileStorage.Upload(fileId, videoId, stream));
-			songData = new SongData()
-			{
-				Id = songId,
-				FileId = fileId,
-				Metadata = videoInfo.Metadata
-			};
-			await Task.Run(() => collection.Upsert(songData));
-
-			// signal other waiting tasks and delete the wait entry
-			lock (currentDownloadsLock)
-			{
-				waitEvent.Set();
-				currentDownloads.Remove(songId);
-			}
-			return songId;
 		}
 	}
 }
