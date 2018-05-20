@@ -136,6 +136,7 @@ namespace BakaCore.Music
 						while(opusStream.HasNextPacket && !token.IsCancellationRequested)
 						{
 							var packet = opusStream.RetrieveNextPacket();
+							if (packet == null) break;
 							await discordStream.WriteAsync(packet, 0, packet.Length);
 						}
 						playHistoryEntry.state = SongState.Finished;
@@ -150,6 +151,7 @@ namespace BakaCore.Music
 					finally
 					{
 						oggStream.Dispose();
+						await discordStream.FlushAsync();
 					}
 					PlayerState = PlayerState.Idle;
 				}
