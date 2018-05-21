@@ -49,5 +49,7 @@ namespace BakaCore
 		public Task RaiseBotShuttingDown() => BotShuttingDown.InvokeAsync();
 		public event AsyncEventHandler InitializationDone;
 		public Task RaiseInitializationDone() => InitializationDone.InvokeAsync();
+		public event AsyncEventHandler DailyEvent;
+		public Task RaiseDailyEvent() => DailyEvent.InvokeAsync();
 	}
 }

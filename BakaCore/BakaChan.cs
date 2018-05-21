@@ -114,7 +114,21 @@ namespace BakaCore
 				try
 				{
 					// Wait until the token is cancelled
-					await Task.Delay(-1, cancellationTokenSource.Token);
+					while (true)
+					{
+						await Task.Delay(TimeSpan.FromDays(1), cancellationTokenSource.Token);
+						cancellationTokenSource.Token.ThrowIfCancellationRequested();
+						logger.LogInformation("Running daily event");
+						try
+						{
+							await events.RaiseDailyEvent();
+							logger.LogDebug("Daily event ran");
+						}
+						catch (Exception ex)
+						{
+							logger.LogError(ex, "Exception while running daily event");
+						}
+					}
 				}
 				catch (TaskCanceledException)
 				{
