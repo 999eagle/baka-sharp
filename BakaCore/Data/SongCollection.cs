@@ -36,7 +36,27 @@ namespace BakaCore.Data
 
 		public async Task<SongData> GetSong(string songId)
 		{
-			return await Task.Run(() => collection.Find(d => d.Id == songId, 0, 1).FirstOrDefault());
+			return await Task.Run(() =>
+			{
+				var song = collection.Find(d => d.Id == songId, 0, 1).FirstOrDefault();
+				if (song == null) return null;
+				if ((DateTime.Now - song.LastAccess) > config.Music.MaximumSongAgeTimeSpan)
+				{
+					collection.Delete(song.Id);
+					return null;
+				}
+				song.LastAccess = DateTime.Now;
+				collection.Update(song);
+				return song;
+			});
+		}
+
+		public Task CleanOldSongs()
+		{
+			return Task.Run(() =>
+			{
+				collection.Delete(d => (DateTime.Now - d.LastAccess) > config.Music.MaximumSongAgeTimeSpan);
+			});
 		}
 
 		public async Task<Stream> GetOggStream(Song song)
@@ -111,7 +131,8 @@ namespace BakaCore.Data
 				{
 					Id = songId,
 					FileId = fileId,
-					Metadata = videoInfo.Metadata
+					Metadata = videoInfo.Metadata,
+					LastAccess = DateTime.Now
 				};
 				await Task.Run(() => collection.Upsert(songData));
 				return songId;

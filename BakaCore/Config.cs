@@ -74,12 +74,18 @@ namespace BakaCore
 		public class Music
 		{
 			public TimeSpan MaximumSongLengthTimeSpan { get; private set; }
+			public TimeSpan MaximumSongAgeTimeSpan { get; private set; }
 			public int EncodingSampleRate { get; set; }
 			public int EncodingBitrate { get; set; }
 			public string MaximumSongLength
 			{
 				get => MaximumSongLengthTimeSpan.ToString();
 				set => MaximumSongLengthTimeSpan = System.Xml.XmlConvert.ToTimeSpan(value); // XmlConvert enables using ISO8601 time format
+			}
+			public string MaximumSongAge
+			{
+				get => MaximumSongAgeTimeSpan.ToString();
+				set => MaximumSongAgeTimeSpan = System.Xml.XmlConvert.ToTimeSpan(value);
 			}
 		}
 		public class DataStore

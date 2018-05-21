@@ -28,5 +28,10 @@ namespace BakaCore.Services
 			if (songId == null) return null;
 			return await GetSong(songId);
 		}
+
+		public Task CleanOldSongs()
+		{
+			return songCollection.CleanOldSongs();
+		}
 	}
 }

@@ -11,5 +11,6 @@ namespace BakaCore.Data.Models
 		public string Id { get; set; }
 		public SongMetadata Metadata { get; set; }
 		public string FileId { get; set; }
+		public DateTime LastAccess { get; set; }
 	}
 }
