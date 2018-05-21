@@ -29,6 +29,7 @@ namespace BakaService
 			loggerFactory = new LoggerFactory();
 			loggerFactory.AddEventLog(LogLevel.Warning);
 			loggerFactory.AddNLog();
+			NLog.LogManager.LoadConfiguration("NLog.config");
 			logger = loggerFactory.CreateLogger<BakaService>();
 		}
 
@@ -53,7 +54,7 @@ namespace BakaService
 			}
 			catch (Exception ex)
 			{
-				logger.LogCritical(new EventId(), ex, "An unhandled exception was thrown during start-up");
+				logger.LogCritical(ex, "An unhandled exception was thrown during start-up");
 				ExitCode = -1;
 				Stop();
 			}
