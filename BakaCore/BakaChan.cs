@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -57,7 +58,9 @@ namespace BakaCore
 				services
 					.AddScoped((_) => new DiscordSocketConfig()
 					{
-						LogLevel = LogSeverity.Debug
+						LogLevel = LogSeverity.Debug,
+						RestClientProvider = Discord.Net.Rest.DefaultRestClientProvider.Create(useProxy: true),
+						WebSocketProvider = Discord.Net.WebSockets.DefaultWebSocketProvider.Create(WebRequest.DefaultWebProxy)
 					})
 					.AddScoped<DiscordSocketClient>()
 					.AddScoped<Commands.CommandHandler>()
