@@ -44,6 +44,7 @@ namespace BakaCore.Data
 				if ((DateTime.Now - song.LastAccess) > config.Music.MaximumSongAgeTimeSpan)
 				{
 					collection.Delete(song.Id);
+					fileStorage.Delete(song.FileId);
 					return null;
 				}
 				song.LastAccess = DateTime.Now;
