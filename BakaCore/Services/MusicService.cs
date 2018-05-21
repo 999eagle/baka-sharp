@@ -14,6 +14,7 @@ namespace BakaCore.Services
 		{
 			songCollection = dataStore.SongCollection;
 			events.DailyEvent += CleanOldSongs;
+			events.InitializationDone += CleanOldSongs;
 		}
 
 		public async Task<Song> GetSong(string songId)
