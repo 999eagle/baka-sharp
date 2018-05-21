@@ -29,6 +29,7 @@ namespace BakaCore.Data
 			logger = loggerFactory.CreateLogger<SongCollection>();
 			collection = db.GetCollection<SongData>();
 			collection.EnsureIndex(d => d.Id);
+			collection.EnsureIndex(d => d.LastAccess);
 			fileStorage = db.FileStorage;
 			downloader = new YouTubeDownloader(services.GetRequiredService<IMusicEncoderService>());
 			this.config = config;
@@ -55,7 +56,15 @@ namespace BakaCore.Data
 		{
 			return Task.Run(() =>
 			{
-				collection.Delete(d => (DateTime.Now - d.LastAccess) > config.Music.MaximumSongAgeTimeSpan);
+				logger.LogInformation("Deleting old songs from database");
+				var minimumLastAccessTime = DateTime.Now - config.Music.MaximumSongAgeTimeSpan;
+				var oldSongs = collection.Find(d => d.LastAccess < minimumLastAccessTime).ToList();
+				foreach(var song in oldSongs)
+				{
+					collection.Delete(song.Id);
+					fileStorage.Delete(song.FileId);
+				}
+				logger.LogInformation($"Deleted {oldSongs.Count} songs");
 			});
 		}
 
