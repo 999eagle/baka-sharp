@@ -19,8 +19,7 @@ namespace BakaCore
 			if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
 			{
 				libPath = Path.Combine(libPath, Environment.Is64BitProcess ? "x64" : "Win32");
-				SetDllDirectory(libPath);
-				if (Marshal.GetLastWin32Error() != 0)
+				if (!SetDllDirectory(libPath) && Marshal.GetLastWin32Error() != 0)
 				{
 					Marshal.ThrowExceptionForHR(Marshal.GetHRForLastWin32Error());
 				}
