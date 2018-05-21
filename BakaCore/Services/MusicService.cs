@@ -10,9 +10,10 @@ namespace BakaCore.Services
 	{
 		private SongCollection songCollection;
 
-		public MusicService(LiteDBStore dataStore)
+		public MusicService(LiteDBStore dataStore, CoreEvents events)
 		{
 			songCollection = dataStore.SongCollection;
+			events.DailyEvent += CleanOldSongs;
 		}
 
 		public async Task<Song> GetSong(string songId)
