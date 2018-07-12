@@ -4,7 +4,6 @@ using System.Threading.Tasks;
 
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using NLog.Extensions.Logging;
 using BakaCore;
 
 namespace BakaServiceLinux
@@ -15,14 +14,19 @@ namespace BakaServiceLinux
 		ILogger logger;
 		BakaChan bakaChan;
 		Task bakaRunTask;
+		IConfiguration config;
 
 		public int ExitCode { get; private set; }
 
 		public Service()
 		{
 			ExitCode = 0;
+			var configBuilder = new ConfigurationBuilder();
+			configBuilder.AddJsonFile("config.json");
+			config = configBuilder.Build();
+
 			loggerFactory = new LoggerFactory();
-			loggerFactory.AddNLog();
+			loggerFactory.AddConsole(config.GetValue<LogLevel>("Logging:LogLevel", LogLevel.Information));
 			logger = loggerFactory.CreateLogger<Service>();
 		}
 
@@ -30,13 +34,7 @@ namespace BakaServiceLinux
 		{
 			Directory.SetCurrentDirectory(AppDomain.CurrentDomain.BaseDirectory);
 			logger.LogInformation("Service starting");
-			logger.LogTrace("Loading configuration");
-			var configBuilder = new ConfigurationBuilder();
-			configBuilder.AddJsonFile("config.json");
-			var config = configBuilder.Build();
-			logger.LogTrace("Configuration loaded");
 			var bakaConfig = config.Get<Configuration>();
-			logger.LogTrace("Configuration bound");
 			bakaConfig.Logging.LoggerFactory = loggerFactory;
 			logger.LogInformation("Running Baka-chan");
 			bakaChan = new BakaChan(bakaConfig);

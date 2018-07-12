@@ -1,0 +1,14 @@
+[Unit]
+Description=Baka-chan
+Requires=network.target
+After=network.target
+
+[Service]
+User=baka
+Group=baka
+Type=simple
+WorkingDirectory=/srv/baka
+ExecStart=/srv/baka/baka/BakaServiceLinux
+
+[Install]
+WantedBy=multi-user.target
