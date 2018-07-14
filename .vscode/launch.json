@@ -9,11 +9,11 @@
 			"type": "coreclr",
 			"request": "launch",
 			"preLaunchTask": "build (debug)",
-			"program": "${workspaceFolder}/ConsoleTest/bin/Debug/netcoreapp2.0/ConsoleTest.dll",
+			"program": "${workspaceFolder}/BakaChan/bin/Debug/netcoreapp2.0/BakaChan.dll",
 			"args": [],
-			"cwd": "${workspaceFolder}/ConsoleTest",
+			"cwd": "${workspaceFolder}/BakaChan",
 			"env":{
-				"LD_LIBRARY_PATH": "${workspaceFolder}/ConsoleTest/bin/Debug/netcoreapp2.0/lib/linux_x64",
+				"LD_LIBRARY_PATH": "${workspaceFolder}/BakaChan/bin/Debug/netcoreapp2.0/lib/linux_x64",
 			},
 			// For more information about the 'console' field, see https://github.com/OmniSharp/omnisharp-vscode/blob/master/debugger-launchjson.md#console-terminal-window
 			"console": "integratedTerminal",
@@ -25,11 +25,11 @@
 			"type": "coreclr",
 			"request": "launch",
 			"preLaunchTask": "build (release)",
-			"program": "${workspaceFolder}/ConsoleTest/bin/Release/netcoreapp2.0/ConsoleTest.dll",
+			"program": "${workspaceFolder}/BakaChan/bin/Release/netcoreapp2.0/BakaChan.dll",
 			"args": [],
-			"cwd": "${workspaceFolder}/ConsoleTest",
+			"cwd": "${workspaceFolder}/BakaChan",
 			"env":{
-				"LD_LIBRARY_PATH": "${workspaceFolder}/ConsoleTest/bin/Release/netcoreapp2.0/lib/linux_x64",
+				"LD_LIBRARY_PATH": "${workspaceFolder}/BakaChan/bin/Release/netcoreapp2.0/lib/linux_x64",
 			},
 			// For more information about the 'console' field, see https://github.com/OmniSharp/omnisharp-vscode/blob/master/debugger-launchjson.md#console-terminal-window
 			"console": "integratedTerminal",
