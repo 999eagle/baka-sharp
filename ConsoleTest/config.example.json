@@ -56,7 +56,8 @@
 	},
 	"API": {
 		"DiscordLoginToken": "<your token here>",
-		"SteamWebAPIKey": ""
+		"SteamWebAPIKey": "",
+		"GoogleAPIKey": ""
 	},
 	"Currency": {
 		"StartCurrency": 500,
@@ -97,5 +98,14 @@
 	"Songs": {
 		"Enabled": true,
 		"Timeout": 15
+	},
+	"Music": {
+		"EncodingSampleRate": 48000,
+		"EncodingBitrate": 128000,
+		"MaximumSongLength": "PT10M",
+		"MaximumSongAge": "P30D"
+	},
+	"DataStore": {
+		"DataPath": "./data/"
 	}
 }

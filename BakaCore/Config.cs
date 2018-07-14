@@ -48,6 +48,7 @@ namespace BakaCore
 		{
 			public string DiscordLoginToken { get; set; }
 			public string SteamWebAPIKey { get; set; }
+			public string GoogleAPIKey { get; set; }
 		}
 		public class Currency
 		{
@@ -70,6 +71,27 @@ namespace BakaCore
 			public bool Enabled { get; set; }
 			public int Timeout { get; set; }
 		}
+		public class Music
+		{
+			public TimeSpan MaximumSongLengthTimeSpan { get; private set; }
+			public TimeSpan MaximumSongAgeTimeSpan { get; private set; }
+			public int EncodingSampleRate { get; set; }
+			public int EncodingBitrate { get; set; }
+			public string MaximumSongLength
+			{
+				get => MaximumSongLengthTimeSpan.ToString();
+				set => MaximumSongLengthTimeSpan = System.Xml.XmlConvert.ToTimeSpan(value); // XmlConvert enables using ISO8601 time format
+			}
+			public string MaximumSongAge
+			{
+				get => MaximumSongAgeTimeSpan.ToString();
+				set => MaximumSongAgeTimeSpan = System.Xml.XmlConvert.ToTimeSpan(value);
+			}
+		}
+		public class DataStore
+		{
+			public string DataPath { get; set; }
+		}
 	}
 	public class Configuration
 	{
@@ -79,5 +101,7 @@ namespace BakaCore
 		public Currency Currency { get; set; }
 		public Images Images { get; set; }
 		public ConfigClasses.Songs Songs { get; set; }
+		public ConfigClasses.Music Music { get; set; }
+		public DataStore DataStore { get; set; }
 	}
 }

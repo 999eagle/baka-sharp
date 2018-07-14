@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -10,6 +11,10 @@ using Microsoft.Extensions.Logging;
 using Discord;
 using Discord.WebSocket;
 using SteamWebAPI2.Interfaces;
+using Google.Apis.Services;
+using Google.Apis.YouTube.v3;
+
+using BakaCore.Services;
 
 namespace BakaCore
 {
@@ -37,7 +42,7 @@ namespace BakaCore
 
 			var loggerFactory = services.GetRequiredService<ILoggerFactory>();
 			logger = services.GetRequiredService<ILoggerFactory>().CreateLogger<BakaChan>();
-				
+
 			void ConfigureServices()
 			{
 				var services = new ServiceCollection();
@@ -53,14 +58,27 @@ namespace BakaCore
 				services
 					.AddScoped((_) => new DiscordSocketConfig()
 					{
-						LogLevel = LogSeverity.Debug
+						LogLevel = LogSeverity.Debug,
+						RestClientProvider = Discord.Net.Rest.DefaultRestClientProvider.Create(useProxy: true),
+						WebSocketProvider = Discord.Net.WebSockets.DefaultWebSocketProvider.Create(WebRequest.DefaultWebProxy)
 					})
 					.AddScoped<DiscordSocketClient>()
 					.AddScoped<Commands.CommandHandler>()
 					.AddScoped<Commands.ArgumentParser>()
 					.AddScoped<Data.IDataStore, Data.JsonStore>()
+					.AddScoped<Data.LiteDBStore>()
 					.AddScoped((_) => new Random())
-					.AddScoped<ImageService>();
+					.AddScoped<ImageService>()
+					.AddScoped((_) => new BaseClientService.Initializer()
+					{
+						ApiKey = config.API.GoogleAPIKey,
+						ApplicationName = "Baka-chan"
+					})
+					.AddScoped<YouTubeService>()
+					.AddScoped<MusicService>()
+					.AddScoped<IMusicEncoderService, FFmpegEncoderService>()
+					.AddScoped<BakaCore.Services.PlayerService>()
+					.AddScoped<CoreEvents>();
 
 				foreach (var handlerType in miscHandlers)
 				{
@@ -76,6 +94,7 @@ namespace BakaCore
 			logger.LogInformation($"Starting bot.");
 			instanceServiceScope = services.CreateScope();
 			Initialize();
+			var events = instanceServiceScope.ServiceProvider.GetRequiredService<CoreEvents>();
 			cancellationTokenSource = new CancellationTokenSource();
 			client.LoginAsync(TokenType.Bot, config.API.DiscordLoginToken).Wait();
 			client.StartAsync().Wait();
@@ -88,20 +107,37 @@ namespace BakaCore
 			commandHandler.RegisterCommands<Commands.GameCommands>();
 			commandHandler.RegisterCommands<Commands.SettingsCommands>();
 			commandHandler.RegisterCommands<Commands.UnitCommands>();
+			commandHandler.RegisterCommands<Commands.MusicCommands>();
 			logger.LogDebug("Initializing misc handlers.");
 			var handlerInstances = miscHandlers.Select(type => instanceServiceScope.ServiceProvider.GetRequiredService(type)).ToList();
 			return RunAsync();
 			async Task RunAsync()
 			{
+				await events.RaiseInitializationDone();
 				try
 				{
 					// Wait until the token is cancelled
-					await Task.Delay(-1, cancellationTokenSource.Token);
+					while (true)
+					{
+						await Task.Delay(TimeSpan.FromDays(1), cancellationTokenSource.Token);
+						cancellationTokenSource.Token.ThrowIfCancellationRequested();
+						logger.LogInformation("Running daily event");
+						try
+						{
+							await events.RaiseDailyEvent();
+							logger.LogDebug("Daily event ran");
+						}
+						catch (Exception ex)
+						{
+							logger.LogError(ex, "Exception while running daily event");
+						}
+					}
 				}
 				catch (TaskCanceledException)
 				{
 					logger.LogInformation($"Stopping bot.");
 				}
+				await events.RaiseBotShuttingDown();
 				await client.SetStatusAsync(UserStatus.Offline);
 				await client.StopAsync();
 				await client.LogoutAsync();
@@ -118,6 +154,9 @@ namespace BakaCore
 
 		private void Initialize()
 		{
+			logger.LogInformation("Setting library path");
+			NativeLibraryHandler.SetLibraryPath();
+
 			client = instanceServiceScope.ServiceProvider.GetRequiredService<DiscordSocketClient>();
 			client.Log += DispatchDiscordLogMessage;
 			client.Ready += Ready;

@@ -222,3 +222,6 @@ FakesAssemblies/
 **/*.Server/GeneratedArtifacts
 **/*.Server/ModelManifest.xml
 _Pvt_Extensions
+
+# Include x64 libs
+!**/lib/**/x64/

@@ -1,6 +1,12 @@
 [submodule "lib/Units"]
 	path = lib/Units
 	url = https://github.com/999eagle/Units.git
+[submodule "lib/YoutubeExtractor"]
+	path = lib/YoutubeExtractor
+	url = https://github.com/999eagle/YoutubeExtractor
 [submodule "lib/Expressions"]
 	path = lib/Expressions
 	url = https://github.com/999eagle/Expressions.git
+[submodule "lib/concentus.oggfile"]
+	path = lib/concentus.oggfile
+	url = https://github.com/999eagle/concentus.oggfile.git
