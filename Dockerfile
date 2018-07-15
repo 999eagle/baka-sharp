@@ -10,4 +10,7 @@ FROM microsoft/dotnet:2.0-runtime
 LABEL maintainer="Sophie Tauchert <sophie@999eagle.moe>"
 WORKDIR /app
 COPY --from=build /build/BakaChan/out ./
+RUN echo "deb http://deb.debian.org/debian buster main" >> /etc/apt/sources.list && \
+    apt-get update && \
+	apt-get -y install libopus0/stable libc6/testing
 ENTRYPOINT ["./BakaChan.sh"]
