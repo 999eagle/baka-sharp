@@ -11,7 +11,7 @@
 				"netcoreapp2.0",
 				"-c",
 				"Debug",
-				"${workspaceFolder}/ConsoleTest/ConsoleTest.csproj"
+				"${workspaceFolder}/BakaChan/BakaChan.csproj"
 			],
 			"problemMatcher": "$msCompile"
 		},
@@ -25,7 +25,7 @@
 				"netcoreapp2.0",
 				"-c",
 				"Release",
-				"${workspaceFolder}/ConsoleTest/ConsoleTest.csproj"
+				"${workspaceFolder}/BakaChan/BakaChan.csproj"
 			],
 			"problemMatcher": "$msCompile"
 		},

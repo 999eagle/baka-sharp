@@ -24,10 +24,16 @@ namespace BakaCore.Data
 		private Task savePermissionsTask = null;
 		private CancellationTokenSource scheduledTaskCancelWait = new CancellationTokenSource();
 
+		private readonly string CoinsFile, SettingsFile, PermissionsFile;
+
 		public JsonStore(Configuration config, ILoggerFactory loggerFactory)
 		{
 			this.config = config;
 			logger = loggerFactory.CreateLogger<JsonStore>();
+			Directory.CreateDirectory(config.DataStore.DataPath);
+			this.CoinsFile = Path.Combine(config.DataStore.DataPath, "coins.json");
+			this.SettingsFile = Path.Combine(config.DataStore.DataPath, "settings.json");
+			this.PermissionsFile = Path.Combine(config.DataStore.DataPath, "permissions.json");
 		}
 
 		public void Dispose()
@@ -77,11 +83,7 @@ namespace BakaCore.Data
 					await Task.Delay(TimeSpan.FromSeconds(30), scheduledTaskCancelWait.Token);
 				}
 				catch (TaskCanceledException) { }
-				if (!Directory.Exists(".\\data\\"))
-				{
-					Directory.CreateDirectory(".\\data\\");
-				}
-				using (var file = File.Open(".\\data\\coins.json", FileMode.Create, FileAccess.Write))
+				using (var file = File.Open(this.CoinsFile, FileMode.Create, FileAccess.Write))
 				using (var writer = new StreamWriter(file))
 				{
 					var jObj = new JObject();
@@ -127,11 +129,7 @@ namespace BakaCore.Data
 					await Task.Delay(TimeSpan.FromSeconds(30), scheduledTaskCancelWait.Token);
 				}
 				catch (TaskCanceledException) { }
-				if (!Directory.Exists(".\\data\\"))
-				{
-					Directory.CreateDirectory(".\\data\\");
-				}
-				using (var file = File.Open(".\\data\\settings.json", FileMode.Create, FileAccess.Write))
+				using (var file = File.Open(this.SettingsFile, FileMode.Create, FileAccess.Write))
 				using (var writer = new StreamWriter(file))
 				{
 					var jObj = new JObject();
@@ -178,11 +176,7 @@ namespace BakaCore.Data
 					await Task.Delay(TimeSpan.FromSeconds(30), scheduledTaskCancelWait.Token);
 				}
 				catch (TaskCanceledException) { }
-				if (!Directory.Exists(".\\data\\"))
-				{
-					Directory.CreateDirectory(".\\data\\");
-				}
-				using (var file = File.Open(".\\data\\permissions.json", FileMode.Create, FileAccess.Write))
+				using (var file = File.Open(this.PermissionsFile, FileMode.Create, FileAccess.Write))
 				using (var writer = new StreamWriter(file))
 				{
 					var jObj = new JObject();
@@ -208,9 +202,9 @@ namespace BakaCore.Data
 		{
 			var data = new Dictionary<ulong, GuildData>();
 
-			if (File.Exists(".\\data\\coins.json"))
+			if (File.Exists(this.CoinsFile))
 			{
-				using (var file = File.OpenText(".\\data\\coins.json"))
+				using (var file = File.OpenText(this.CoinsFile))
 				using (var reader = new JsonTextReader(file))
 				{
 					var coins = (JObject)JToken.ReadFrom(reader);
@@ -224,9 +218,9 @@ namespace BakaCore.Data
 					}
 				}
 			}
-			if (File.Exists(".\\data\\settings.json"))
+			if (File.Exists(this.SettingsFile))
 			{
-				using (var file = File.OpenText(".\\data\\settings.json"))
+				using (var file = File.OpenText(this.SettingsFile))
 				using (var reader = new JsonTextReader(file))
 				{
 					var settings = (JObject)JToken.ReadFrom(reader);
@@ -240,9 +234,9 @@ namespace BakaCore.Data
 					}
 				}
 			}
-			if (File.Exists(".\\data\\permissions.json"))
+			if (File.Exists(this.PermissionsFile))
 			{
-				using (var file = File.OpenText(".\\data\\permissions.json"))
+				using (var file = File.OpenText(this.PermissionsFile))
 				using (var reader = new JsonTextReader(file))
 				{
 					var settings = (JObject)JToken.ReadFrom(reader);

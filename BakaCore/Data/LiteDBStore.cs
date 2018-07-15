@@ -14,6 +14,7 @@ namespace BakaCore.Data
 		public LiteDBStore(ILoggerFactory loggerFactory, Configuration config, IServiceProvider services)
 		{
 			logger = loggerFactory.CreateLogger<LiteDBStore>();
+			Directory.CreateDirectory(config.DataStore.DataPath);
 			db = new LiteDatabase(Path.Combine(config.DataStore.DataPath, "litedb.db"));
 			SongCollection = new SongCollection(db, loggerFactory, config, services);
 		}
