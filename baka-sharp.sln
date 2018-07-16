@@ -5,7 +5,7 @@ VisualStudioVersion = 15.0.26823.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BakaCore", "BakaCore\BakaCore.csproj", "{E1F15889-A55E-4931-893B-03A7461A55B6}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BakaChan", "ConsoleTest\BakaChan.csproj", "{D76EC6E5-28CA-4C9E-A625-639EBD79070A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BakaChan", "BakaChan\BakaChan.csproj", "{D76EC6E5-28CA-4C9E-A625-639EBD79070A}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BakaService", "BakaService\BakaService.csproj", "{954BC617-FC35-43B0-B65F-B80F457E7DFA}"
 EndProject
