@@ -8,64 +8,69 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
-namespace ConsoleTest
+namespace BakaChan
 {
 	class Program
 	{
-		private static IConfiguration config;
 		static void Main(string[] args)
 		{
-			var configBuilder = new ConfigurationBuilder();
-			configBuilder.AddJsonFile("config.json");
-			config = configBuilder.Build();
 			AsyncMain(args).Wait();
 		}
 
 		static async Task AsyncMain(string[] args)
 		{
-			var bakaConfig = config.Get<BakaCore.Configuration>();
-			bakaConfig.Logging.LoggerFactory = new LoggerFactory();
-			bakaConfig.Logging.LoggerFactory.AddConsole(bakaConfig.Logging.LogLevel);
-			var logger = bakaConfig.Logging.LoggerFactory.CreateLogger("Baka-chan");
-			logger.LogInformation("Initializing Baka-chan");
-			var bot = new BakaCore.BakaChan(bakaConfig);
-			Task runTask = null;
+			var service = new Service();
+			await RunAsync(service);
+		}
 
-			Console.CancelKeyPress += (sender, evArgs) => { Exit(); };
-			AppDomain.CurrentDomain.ProcessExit += (sender, evArgs) => { Exit(); };
+		static async Task RunAsync(Service service)
+		{
+			var waitEvent = new ManualResetEventSlim(false);
+			using (var tokenSource = new CancellationTokenSource())
+			{
+				AttachShutdownEvents(tokenSource, waitEvent);
 
-			logger.LogDebug("Starting bot instance");
-			try
-			{
-				runTask = bot.Run();
-			}
-			catch (Exception ex)
-			{
-				logger.LogCritical(ex, "Exception thrown during bot startup");
-				Exit();
-			}
-			if (runTask != null)
-			{
-				await runTask;
-			}
+				try
+				{
+					service.Start();
 
-			void Exit()
+					var waitForCancel = new TaskCompletionSource<object>(TaskCreationOptions.RunContinuationsAsynchronously);
+					tokenSource.Token.Register((state) =>
+					{
+						((TaskCompletionSource<object>)state).TrySetResult(null);
+					}, waitForCancel);
+					await waitForCancel.Task;
+
+					service.Stop();
+				}
+				finally
+				{
+					waitEvent.Set();
+				}
+			}
+		}
+
+		static void AttachShutdownEvents(CancellationTokenSource tokenSource, ManualResetEventSlim waitEvent)
+		{
+			void Shutdown()
 			{
-				logger.LogDebug("Stopping bot instance");
-				bot.Stop();
-				if (runTask != null)
+				if (!tokenSource.IsCancellationRequested)
 				{
 					try
 					{
-						runTask.Wait();
+						tokenSource.Cancel();
 					}
-					catch (Exception ex)
-					{
-						logger.LogCritical(ex, "Exception thrown during bot shutdown");
-					}
+					catch (ObjectDisposedException) { }
 				}
-				logger.LogInformation("Bot instance stopped");
+				waitEvent.Wait();
 			}
+
+			AppDomain.CurrentDomain.ProcessExit += (sender, eventArgs) => Shutdown();
+			Console.CancelKeyPress += (sender, eventArgs) =>
+			{
+				Shutdown();
+				eventArgs.Cancel = true;
+			};
 		}
 	}
 }

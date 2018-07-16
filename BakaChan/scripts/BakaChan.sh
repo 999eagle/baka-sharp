@@ -6,4 +6,4 @@ BINARY_FILE="${SCRIPT_DIR}/BakaChan.dll"
 
 export LD_LIBRARY_PATH="${SCRIPT_DIR}/lib/linux_x64"
 
-dotnet "$BINARY_FILE" "$@"
+exec dotnet "$BINARY_FILE" "$@"
