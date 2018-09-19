@@ -135,7 +135,7 @@ namespace BakaCore.Commands
 		[Command("help", Help = "Shows this help")]
 		public async Task HelpCommand(SocketMessage message)
 		{
-			var text = "**Baka-chan**\nMade by **The999eagle#6302**\n\n";
+			var text = "**Baka-chan**\nMade by **The999eagle#1337**\n\n";
 			foreach (var command in registeredCommands)
 			{
 				if (command.Help == null) continue;
@@ -150,7 +150,7 @@ namespace BakaCore.Commands
 		{
 			var command = CommandDescription.CreateCommandDescription(description);
 			var commandArgs = meth.GetParameters().Skip(1);
-			
+
 			command.UsageString = "";
 			foreach (var arg in commandArgs)
 			{
